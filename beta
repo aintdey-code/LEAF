@@ -22,6 +22,7 @@ local spot2_sequence = {
 	CFrame.new(-336.942902, -5.10106993, 99.3276443, 0.999914348, -3.63984611e-08, 0.0130875716, 3.67094941e-08, 1, -2.35254749e-08, -0.0130875716, 2.40038975e-08, 0.999914348)
 }
 
+
 local SAVE_FILE = "LEAFY_CONFIG.txt"
 
 local defaultState = {
@@ -326,7 +327,7 @@ local function buildFloatBtn(labelText, bgColor, screenYScale, callback)
 end
 
 local floatRight = buildFloatBtn("▶  TP Right", C_FLOAT_R, 0.35, triggerRight)
-local floatLeft  = buildFloatBtn("◀  TP Left",  C_FLOAT_L, 0.55, triggerLeft)
+local floatLeft  = buildFloatBtn("◀  TP Left",  C_FLOAT_L, 0.48, triggerLeft)
 
 
 local mainFrame = Instance.new("Frame")
