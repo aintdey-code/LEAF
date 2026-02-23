@@ -1,6 +1,3 @@
--- // discord.gg/2Em2qdHJSU
--- // TT: @deynowleaf | DC: leafyondc
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
@@ -10,18 +7,17 @@ if LocalPlayer.PlayerGui:FindFirstChild("SyncClickGUI") then
     LocalPlayer.PlayerGui:FindFirstChild("SyncClickGUI"):Destroy()
 end
 
--- // Main ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SyncClickGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = LocalPlayer.PlayerGui
 
--- // Main Frame
+-- // Main Frame (320px tall, everything fits with no overlap)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 300, 0, 480)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -240)
+MainFrame.Size = UDim2.new(0, 230, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -115, 0.5, -160)
 MainFrame.BackgroundColor3 = Color3.fromRGB(13, 16, 14)
 MainFrame.BackgroundTransparency = 0.12
 MainFrame.BorderSizePixel = 0
@@ -31,7 +27,7 @@ MainFrame.ClipsDescendants = false
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.CornerRadius = UDim.new(0, 16)
 MainCorner.Parent = MainFrame
 
 local MainStroke = Instance.new("UIStroke")
@@ -40,32 +36,30 @@ MainStroke.Thickness = 1.2
 MainStroke.Transparency = 0.5
 MainStroke.Parent = MainFrame
 
--- // Top green accent line
+-- // Top accent line
 local TopAccent = Instance.new("Frame")
 TopAccent.Size = UDim2.new(1, 0, 0, 2)
-TopAccent.Position = UDim2.new(0, 0, 0, 0)
 TopAccent.BackgroundColor3 = Color3.fromRGB(57, 255, 20)
 TopAccent.BorderSizePixel = 0
 TopAccent.ZIndex = 2
 TopAccent.Parent = MainFrame
 
 local TopAccentCorner = Instance.new("UICorner")
-TopAccentCorner.CornerRadius = UDim.new(0, 10)
+TopAccentCorner.CornerRadius = UDim.new(0, 16)
 TopAccentCorner.Parent = TopAccent
 
 local TopGrad = Instance.new("UIGradient")
 TopGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
-    ColorSequenceKeypoint.new(0.25, Color3.fromRGB(57, 255, 20)),
-    ColorSequenceKeypoint.new(0.75, Color3.fromRGB(57, 255, 20)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0,0,0)),
+    ColorSequenceKeypoint.new(0.25, Color3.fromRGB(57,255,20)),
+    ColorSequenceKeypoint.new(0.75, Color3.fromRGB(57,255,20)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0,0,0)),
 })
 TopGrad.Parent = TopAccent
 
--- // Header
+-- // Header (y=0, h=52)
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 80)
-Header.Position = UDim2.new(0, 0, 0, 0)
+Header.Size = UDim2.new(1, 0, 0, 52)
 Header.BackgroundColor3 = Color3.fromRGB(15, 22, 17)
 Header.BackgroundTransparency = 0.1
 Header.BorderSizePixel = 0
@@ -73,59 +67,45 @@ Header.ZIndex = 2
 Header.Parent = MainFrame
 
 local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 10)
+HeaderCorner.CornerRadius = UDim.new(0, 16)
 HeaderCorner.Parent = Header
 
--- // Title
+-- Title (y=8)
 local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, -50, 0, 26)
-TitleLabel.Position = UDim2.new(0, 16, 0, 10)
+TitleLabel.Size = UDim2.new(1, -50, 0, 22)
+TitleLabel.Position = UDim2.new(0, 14, 0, 8)
 TitleLabel.BackgroundTransparency = 1
 TitleLabel.Text = "SYNC CLICK"
 TitleLabel.TextColor3 = Color3.fromRGB(57, 255, 20)
-TitleLabel.TextSize = 19
+TitleLabel.TextSize = 15
 TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 TitleLabel.ZIndex = 3
 TitleLabel.Parent = Header
 
--- // TT & DC below title
-local SocialTag = Instance.new("TextLabel")
-SocialTag.Size = UDim2.new(1, -20, 0, 14)
-SocialTag.Position = UDim2.new(0, 16, 0, 38)
-SocialTag.BackgroundTransparency = 1
-SocialTag.Text = "TT: @deynowleaf  |  DC: leafyondc"
-SocialTag.TextColor3 = Color3.fromRGB(57, 255, 20)
-SocialTag.TextSize = 10
-SocialTag.Font = Enum.Font.Gotham
-SocialTag.TextXAlignment = Enum.TextXAlignment.Left
-SocialTag.TextTransparency = 0.3
-SocialTag.ZIndex = 3
-SocialTag.Parent = Header
-
--- // Discord link below social tag
+-- Discord link (y=31)
 local DiscordLink = Instance.new("TextLabel")
-DiscordLink.Size = UDim2.new(1, -20, 0, 14)
-DiscordLink.Position = UDim2.new(0, 16, 0, 56)
+DiscordLink.Size = UDim2.new(1, -20, 0, 12)
+DiscordLink.Position = UDim2.new(0, 14, 0, 33)
 DiscordLink.BackgroundTransparency = 1
 DiscordLink.Text = "discord.gg/2Em2qdHJSU"
 DiscordLink.TextColor3 = Color3.fromRGB(57, 255, 20)
-DiscordLink.TextSize = 10
+DiscordLink.TextSize = 9
 DiscordLink.Font = Enum.Font.Gotham
 DiscordLink.TextXAlignment = Enum.TextXAlignment.Left
 DiscordLink.TextTransparency = 0.4
 DiscordLink.ZIndex = 3
 DiscordLink.Parent = Header
 
--- // Close button
+-- Close button
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 26, 0, 26)
-CloseBtn.Position = UDim2.new(1, -36, 0, 11)
+CloseBtn.Size = UDim2.new(0, 20, 0, 20)
+CloseBtn.Position = UDim2.new(1, -28, 0, 10)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(18, 32, 20)
 CloseBtn.BorderSizePixel = 0
 CloseBtn.Text = "✕"
 CloseBtn.TextColor3 = Color3.fromRGB(57, 255, 20)
-CloseBtn.TextSize = 11
+CloseBtn.TextSize = 9
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.ZIndex = 3
 CloseBtn.Parent = Header
@@ -142,15 +122,13 @@ CloseBtnStroke.Parent = CloseBtn
 
 CloseBtn.MouseButton1Click:Connect(function()
     local t = TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
-        Size = UDim2.new(0, 300, 0, 0),
-        Position = UDim2.new(0.5, -150, 0.5, -240),
+        Size = UDim2.new(0, 230, 0, 0),
         BackgroundTransparency = 1
     })
     t:Play()
     t.Completed:Connect(function() ScreenGui:Destroy() end)
 end)
 
--- // Header bottom divider
 local HeaderDivider = Instance.new("Frame")
 HeaderDivider.Size = UDim2.new(1, 0, 0, 1)
 HeaderDivider.Position = UDim2.new(0, 0, 1, -1)
@@ -160,32 +138,41 @@ HeaderDivider.BorderSizePixel = 0
 HeaderDivider.ZIndex = 3
 HeaderDivider.Parent = Header
 
--- // Body container
+-- // Body (y=53, height=240)
+-- Layout:
+--   TARGET PLAYER label: y=8,  h=11 → ends 19
+--   Dropdown btn:        y=22, h=32 → ends 54
+--   Divider:             y=62, h=1  → ends 63
+--   CONTROLS label:      y=70, h=11 → ends 81
+--   SYNC row:            y=86, h=34 → ends 120
+--   FREEZE row:          y=126,h=34 → ends 160
+--   PACKET row:          y=166,h=34 → ends 200
+--   (footer is at 320-26=294 absolute, body+200=253, gap = 41px ✅)
+
 local Body = Instance.new("Frame")
-Body.Size = UDim2.new(1, 0, 0, 368)
-Body.Position = UDim2.new(0, 0, 0, 81)
+Body.Size = UDim2.new(1, 0, 0, 240)
+Body.Position = UDim2.new(0, 0, 0, 53)
 Body.BackgroundTransparency = 1
 Body.ZIndex = 2
 Body.Parent = MainFrame
 
--- // "TARGET PLAYER" label
 local TargetLabel = Instance.new("TextLabel")
-TargetLabel.Size = UDim2.new(1, -32, 0, 14)
-TargetLabel.Position = UDim2.new(0, 16, 0, 14)
+TargetLabel.Size = UDim2.new(1, -28, 0, 11)
+TargetLabel.Position = UDim2.new(0, 14, 0, 8)
 TargetLabel.BackgroundTransparency = 1
 TargetLabel.Text = "TARGET PLAYER"
 TargetLabel.TextColor3 = Color3.fromRGB(57, 255, 20)
-TargetLabel.TextSize = 10
+TargetLabel.TextSize = 9
 TargetLabel.Font = Enum.Font.GothamBold
 TargetLabel.TextXAlignment = Enum.TextXAlignment.Left
 TargetLabel.TextTransparency = 0.4
 TargetLabel.ZIndex = 2
 TargetLabel.Parent = Body
 
--- // Dropdown button
+-- // Dropdown (y=22, h=32)
 local DropBtn = Instance.new("TextButton")
-DropBtn.Size = UDim2.new(1, -32, 0, 44)
-DropBtn.Position = UDim2.new(0, 16, 0, 32)
+DropBtn.Size = UDim2.new(1, -28, 0, 32)
+DropBtn.Position = UDim2.new(0, 14, 0, 22)
 DropBtn.BackgroundColor3 = Color3.fromRGB(15, 22, 17)
 DropBtn.BorderSizePixel = 0
 DropBtn.Text = ""
@@ -194,7 +181,7 @@ DropBtn.ZIndex = 3
 DropBtn.Parent = Body
 
 local DropBtnCorner = Instance.new("UICorner")
-DropBtnCorner.CornerRadius = UDim.new(0, 8)
+DropBtnCorner.CornerRadius = UDim.new(0, 10)
 DropBtnCorner.Parent = DropBtn
 
 local DropBtnStroke = Instance.new("UIStroke")
@@ -204,8 +191,8 @@ DropBtnStroke.Transparency = 0.65
 DropBtnStroke.Parent = DropBtn
 
 local DropAccent = Instance.new("Frame")
-DropAccent.Size = UDim2.new(0, 3, 1, -12)
-DropAccent.Position = UDim2.new(0, 0, 0, 6)
+DropAccent.Size = UDim2.new(0, 3, 1, -8)
+DropAccent.Position = UDim2.new(0, 0, 0, 4)
 DropAccent.BackgroundColor3 = Color3.fromRGB(57, 255, 20)
 DropAccent.BorderSizePixel = 0
 DropAccent.ZIndex = 4
@@ -216,12 +203,12 @@ DropAccentCorner.CornerRadius = UDim.new(0, 4)
 DropAccentCorner.Parent = DropAccent
 
 local SelectedText = Instance.new("TextLabel")
-SelectedText.Size = UDim2.new(1, -50, 1, 0)
-SelectedText.Position = UDim2.new(0, 16, 0, 0)
+SelectedText.Size = UDim2.new(1, -40, 1, 0)
+SelectedText.Position = UDim2.new(0, 14, 0, 0)
 SelectedText.BackgroundTransparency = 1
 SelectedText.Text = "Select a Player..."
 SelectedText.TextColor3 = Color3.fromRGB(209, 250, 229)
-SelectedText.TextSize = 13
+SelectedText.TextSize = 10
 SelectedText.Font = Enum.Font.GothamSemibold
 SelectedText.TextXAlignment = Enum.TextXAlignment.Left
 SelectedText.TextTransparency = 0.5
@@ -229,21 +216,20 @@ SelectedText.ZIndex = 4
 SelectedText.Parent = DropBtn
 
 local ArrowIcon = Instance.new("TextLabel")
-ArrowIcon.Size = UDim2.new(0, 20, 1, 0)
-ArrowIcon.Position = UDim2.new(1, -28, 0, 0)
+ArrowIcon.Size = UDim2.new(0, 16, 1, 0)
+ArrowIcon.Position = UDim2.new(1, -22, 0, 0)
 ArrowIcon.BackgroundTransparency = 1
 ArrowIcon.Text = "▾"
 ArrowIcon.TextColor3 = Color3.fromRGB(57, 255, 20)
-ArrowIcon.TextSize = 14
+ArrowIcon.TextSize = 11
 ArrowIcon.Font = Enum.Font.GothamBold
 ArrowIcon.TextTransparency = 0.35
 ArrowIcon.ZIndex = 4
 ArrowIcon.Parent = DropBtn
 
--- // Dropdown list
 local DropList = Instance.new("Frame")
-DropList.Size = UDim2.new(1, -32, 0, 0)
-DropList.Position = UDim2.new(0, 16, 0, 78)
+DropList.Size = UDim2.new(1, -28, 0, 0)
+DropList.Position = UDim2.new(0, 14, 0, 57)
 DropList.BackgroundColor3 = Color3.fromRGB(11, 17, 12)
 DropList.BorderSizePixel = 0
 DropList.ClipsDescendants = true
@@ -252,7 +238,7 @@ DropList.ZIndex = 10
 DropList.Parent = Body
 
 local DropListCorner = Instance.new("UICorner")
-DropListCorner.CornerRadius = UDim.new(0, 8)
+DropListCorner.CornerRadius = UDim.new(0, 10)
 DropListCorner.Parent = DropList
 
 local DropListStroke = Instance.new("UIStroke")
@@ -276,13 +262,12 @@ ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 ListLayout.Padding = UDim.new(0, 0)
 ListLayout.Parent = ScrollFrame
 
--- // Dropdown logic
 local dropOpen = false
 
 local function closeDropdown()
     dropOpen = false
     TweenService:Create(DropList, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
-        Size = UDim2.new(1, -32, 0, 0)
+        Size = UDim2.new(1, -28, 0, 0)
     }):Play()
     task.delay(0.2, function() DropList.Visible = false end)
     TweenService:Create(ArrowIcon, TweenInfo.new(0.18), { Rotation = 0 }):Play()
@@ -296,9 +281,9 @@ local function populatePlayers()
     local totalH = 0
     for i, plr in ipairs(list) do
         if plr == LocalPlayer then continue end
-        totalH += 38
+        totalH += 30
         local Opt = Instance.new("TextButton")
-        Opt.Size = UDim2.new(1, 0, 0, 38)
+        Opt.Size = UDim2.new(1, 0, 0, 30)
         Opt.BackgroundColor3 = Color3.fromRGB(13, 20, 14)
         Opt.BorderSizePixel = 0
         Opt.Text = ""
@@ -308,20 +293,20 @@ local function populatePlayers()
         Opt.Parent = ScrollFrame
 
         local OptName = Instance.new("TextLabel")
-        OptName.Size = UDim2.new(1, -16, 1, 0)
-        OptName.Position = UDim2.new(0, 14, 0, 0)
+        OptName.Size = UDim2.new(1, -14, 1, 0)
+        OptName.Position = UDim2.new(0, 12, 0, 0)
         OptName.BackgroundTransparency = 1
         OptName.Text = plr.Name
         OptName.TextColor3 = Color3.fromRGB(209, 250, 229)
-        OptName.TextSize = 13
+        OptName.TextSize = 10
         OptName.Font = Enum.Font.GothamSemibold
         OptName.TextXAlignment = Enum.TextXAlignment.Left
         OptName.ZIndex = 13
         OptName.Parent = Opt
 
         local OptLine = Instance.new("Frame")
-        OptLine.Size = UDim2.new(1, -14, 0, 1)
-        OptLine.Position = UDim2.new(0, 7, 1, -1)
+        OptLine.Size = UDim2.new(1, -12, 0, 1)
+        OptLine.Position = UDim2.new(0, 6, 1, -1)
         OptLine.BackgroundColor3 = Color3.fromRGB(57, 255, 20)
         OptLine.BackgroundTransparency = 0.85
         OptLine.BorderSizePixel = 0
@@ -349,7 +334,7 @@ DropBtn.MouseButton1Click:Connect(function()
     if dropOpen then
         DropList.Visible = true
         TweenService:Create(DropList, TweenInfo.new(0.22, Enum.EasingStyle.Quart), {
-            Size = UDim2.new(1, -32, 0, 140)
+            Size = UDim2.new(1, -28, 0, 100)
         }):Play()
         TweenService:Create(ArrowIcon, TweenInfo.new(0.18), { Rotation = 180 }):Play()
     else
@@ -357,35 +342,38 @@ DropBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- // Divider
+-- // Divider (y=62)
 local Divider = Instance.new("Frame")
-Divider.Size = UDim2.new(1, -32, 0, 1)
-Divider.Position = UDim2.new(0, 16, 0, 152)
+Divider.Size = UDim2.new(1, -28, 0, 1)
+Divider.Position = UDim2.new(0, 14, 0, 62)
 Divider.BackgroundColor3 = Color3.fromRGB(57, 255, 20)
 Divider.BackgroundTransparency = 0.8
 Divider.BorderSizePixel = 0
 Divider.ZIndex = 2
 Divider.Parent = Body
 
--- // Controls label
+-- // CONTROLS label (y=70)
 local ControlsLabel = Instance.new("TextLabel")
-ControlsLabel.Size = UDim2.new(1, -32, 0, 14)
-ControlsLabel.Position = UDim2.new(0, 16, 0, 164)
+ControlsLabel.Size = UDim2.new(1, -28, 0, 11)
+ControlsLabel.Position = UDim2.new(0, 14, 0, 70)
 ControlsLabel.BackgroundTransparency = 1
 ControlsLabel.Text = "CONTROLS"
 ControlsLabel.TextColor3 = Color3.fromRGB(57, 255, 20)
-ControlsLabel.TextSize = 10
+ControlsLabel.TextSize = 9
 ControlsLabel.Font = Enum.Font.GothamBold
 ControlsLabel.TextXAlignment = Enum.TextXAlignment.Left
 ControlsLabel.TextTransparency = 0.4
 ControlsLabel.ZIndex = 2
 ControlsLabel.Parent = Body
 
--- // Helper function to build toggle rows
+-- // Toggle row helper (h=34 each, gaps of 6px)
+-- SYNC:   y=86,  ends 120
+-- FREEZE: y=126, ends 160
+-- PACKET: y=166, ends 200
 local function makeToggleRow(parent, yPos, labelText)
     local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, -32, 0, 52)
-    Row.Position = UDim2.new(0, 16, 0, yPos)
+    Row.Size = UDim2.new(1, -28, 0, 34)
+    Row.Position = UDim2.new(0, 14, 0, yPos)
     Row.BackgroundColor3 = Color3.fromRGB(15, 22, 17)
     Row.BackgroundTransparency = 0.05
     Row.BorderSizePixel = 0
@@ -393,7 +381,7 @@ local function makeToggleRow(parent, yPos, labelText)
     Row.Parent = parent
 
     local RowCorner = Instance.new("UICorner")
-    RowCorner.CornerRadius = UDim.new(0, 8)
+    RowCorner.CornerRadius = UDim.new(0, 10)
     RowCorner.Parent = Row
 
     local RowStroke = Instance.new("UIStroke")
@@ -403,12 +391,12 @@ local function makeToggleRow(parent, yPos, labelText)
     RowStroke.Parent = Row
 
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -75, 1, 0)
-    Label.Position = UDim2.new(0, 16, 0, 0)
+    Label.Size = UDim2.new(1, -65, 1, 0)
+    Label.Position = UDim2.new(0, 12, 0, 0)
     Label.BackgroundTransparency = 1
     Label.Text = labelText
     Label.TextColor3 = Color3.fromRGB(209, 250, 229)
-    Label.TextSize = 13
+    Label.TextSize = 10
     Label.Font = Enum.Font.GothamBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.ZIndex = 3
@@ -416,9 +404,10 @@ local function makeToggleRow(parent, yPos, labelText)
 
     local isOn = false
 
+    -- // Pill toggle (w=40, h=20)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(0, 50, 0, 26)
-    Btn.Position = UDim2.new(1, -62, 0.5, -13)
+    Btn.Size = UDim2.new(0, 40, 0, 20)
+    Btn.Position = UDim2.new(1, -48, 0.5, -10)
     Btn.BackgroundColor3 = Color3.fromRGB(20, 28, 22)
     Btn.BorderSizePixel = 0
     Btn.Text = ""
@@ -436,28 +425,31 @@ local function makeToggleRow(parent, yPos, labelText)
     BtnStroke.Transparency = 0.55
     BtnStroke.Parent = Btn
 
+    -- // Knob (w=14, h=14)
     local Knob = Instance.new("Frame")
-    Knob.Size = UDim2.new(0, 18, 0, 18)
-    Knob.Position = UDim2.new(0, 4, 0.5, -9)
+    Knob.Size = UDim2.new(0, 14, 0, 14)
+    Knob.Position = UDim2.new(0, 3, 0.5, -7)
     Knob.BackgroundColor3 = Color3.fromRGB(57, 255, 20)
     Knob.BackgroundTransparency = 0.5
     Knob.BorderSizePixel = 0
-    Knob.ZIndex = 4
+    Knob.ZIndex = 5
     Knob.Parent = Btn
 
     local KnobCorner = Instance.new("UICorner")
     KnobCorner.CornerRadius = UDim.new(1, 0)
     KnobCorner.Parent = Knob
 
+    -- // ON/OFF centered inside pill
     local State = Instance.new("TextLabel")
-    State.Size = UDim2.new(0, 28, 1, 0)
-    State.Position = UDim2.new(1, 5, 0, 0)
+    State.Size = UDim2.new(1, 0, 1, 0)
     State.BackgroundTransparency = 1
     State.Text = "OFF"
     State.TextColor3 = Color3.fromRGB(57, 255, 20)
-    State.TextSize = 10
+    State.TextSize = 7
     State.Font = Enum.Font.GothamBold
-    State.TextTransparency = 0.5
+    State.TextXAlignment = Enum.TextXAlignment.Center
+    State.TextYAlignment = Enum.TextYAlignment.Center
+    State.TextTransparency = 0.45
     State.ZIndex = 4
     State.Parent = Btn
 
@@ -465,53 +457,38 @@ local function makeToggleRow(parent, yPos, labelText)
         isOn = not isOn
         if isOn then
             TweenService:Create(Knob, TweenInfo.new(0.22, Enum.EasingStyle.Quart), {
-                Position = UDim2.new(0, 28, 0.5, -9),
+                Position = UDim2.new(0, 23, 0.5, -7),
                 BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                 BackgroundTransparency = 0
             }):Play()
-            TweenService:Create(Btn, TweenInfo.new(0.22), {
-                BackgroundColor3 = Color3.fromRGB(22, 101, 52)
-            }):Play()
-            TweenService:Create(Row, TweenInfo.new(0.22), {
-                BackgroundColor3 = Color3.fromRGB(18, 30, 20)
-            }):Play()
+            TweenService:Create(Btn, TweenInfo.new(0.22), { BackgroundColor3 = Color3.fromRGB(22, 101, 52) }):Play()
+            TweenService:Create(Row, TweenInfo.new(0.22), { BackgroundColor3 = Color3.fromRGB(18, 30, 20) }):Play()
             RowStroke.Transparency = 0.35
             State.Text = "ON"
             State.TextTransparency = 0
         else
             TweenService:Create(Knob, TweenInfo.new(0.22, Enum.EasingStyle.Quart), {
-                Position = UDim2.new(0, 4, 0.5, -9),
+                Position = UDim2.new(0, 3, 0.5, -7),
                 BackgroundColor3 = Color3.fromRGB(57, 255, 20),
                 BackgroundTransparency = 0.5
             }):Play()
-            TweenService:Create(Btn, TweenInfo.new(0.22), {
-                BackgroundColor3 = Color3.fromRGB(20, 28, 22)
-            }):Play()
-            TweenService:Create(Row, TweenInfo.new(0.22), {
-                BackgroundColor3 = Color3.fromRGB(15, 22, 17)
-            }):Play()
+            TweenService:Create(Btn, TweenInfo.new(0.22), { BackgroundColor3 = Color3.fromRGB(20, 28, 22) }):Play()
+            TweenService:Create(Row, TweenInfo.new(0.22), { BackgroundColor3 = Color3.fromRGB(15, 22, 17) }):Play()
             RowStroke.Transparency = 0.75
             State.Text = "OFF"
-            State.TextTransparency = 0.5
+            State.TextTransparency = 0.45
         end
     end)
-
-    return Row, isOn
 end
 
--- // SYNC toggle row
-local SyncRow, syncOn = makeToggleRow(Body, 183, "SYNC")
+makeToggleRow(Body, 86,  "SYNC")
+makeToggleRow(Body, 126, "FREEZE CLIENT")
+makeToggleRow(Body, 166, "PACKET BYPASS")
 
--- // FREEZE CLIENT toggle row
-local FreezeRow, freezeOn = makeToggleRow(Body, 244, "FREEZE")
-
--- // PACKET BYPASS toggle row
-local PacketRow, packetOn = makeToggleRow(Body, 305, "SERVER BYPASS")
-
--- // Footer
+-- // Footer (y = 320-26 = 294, h=26)
 local Footer = Instance.new("Frame")
-Footer.Size = UDim2.new(1, 0, 0, 34)
-Footer.Position = UDim2.new(0, 0, 1, -34)
+Footer.Size = UDim2.new(1, 0, 0, 26)
+Footer.Position = UDim2.new(0, 0, 1, -26)
 Footer.BackgroundColor3 = Color3.fromRGB(11, 16, 12)
 Footer.BackgroundTransparency = 0.1
 Footer.BorderSizePixel = 0
@@ -519,7 +496,7 @@ Footer.ZIndex = 2
 Footer.Parent = MainFrame
 
 local FooterCorner = Instance.new("UICorner")
-FooterCorner.CornerRadius = UDim.new(0, 10)
+FooterCorner.CornerRadius = UDim.new(0, 16)
 FooterCorner.Parent = Footer
 
 local FooterTopLine = Instance.new("Frame")
@@ -532,11 +509,11 @@ FooterTopLine.Parent = Footer
 
 local FooterCredits = Instance.new("TextLabel")
 FooterCredits.Size = UDim2.new(1, -16, 1, 0)
-FooterCredits.Position = UDim2.new(0, 16, 0, 0)
+FooterCredits.Position = UDim2.new(0, 14, 0, 0)
 FooterCredits.BackgroundTransparency = 1
 FooterCredits.Text = "TT: @deynowleaf  •  DC: leafyondc"
 FooterCredits.TextColor3 = Color3.fromRGB(57, 255, 20)
-FooterCredits.TextSize = 10
+FooterCredits.TextSize = 9
 FooterCredits.Font = Enum.Font.Gotham
 FooterCredits.TextXAlignment = Enum.TextXAlignment.Left
 FooterCredits.TextTransparency = 0.45
@@ -547,6 +524,6 @@ FooterCredits.Parent = Footer
 MainFrame.Size = UDim2.new(0, 0, 0, 0)
 MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 TweenService:Create(MainFrame, TweenInfo.new(0.28, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-    Size = UDim2.new(0, 300, 0, 480),
-    Position = UDim2.new(0.5, -150, 0.5, -240)
+    Size = UDim2.new(0, 230, 0, 320),
+    Position = UDim2.new(0.5, -115, 0.5, -160)
 }):Play()
