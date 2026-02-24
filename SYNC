@@ -482,8 +482,8 @@ local function makeToggleRow(parent, yPos, labelText)
 end
 
 makeToggleRow(Body, 86,  "SYNC")
-makeToggleRow(Body, 126, "FREEZE CLIENT")
-makeToggleRow(Body, 166, "PACKET BYPASS")
+makeToggleRow(Body, 126, "FREEZE TRADE")
+makeToggleRow(Body, 166, "SERVER BYPASS")
 
 -- // Footer (y = 320-26 = 294, h=26)
 local Footer = Instance.new("Frame")
