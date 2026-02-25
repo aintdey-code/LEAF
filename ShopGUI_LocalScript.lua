@@ -1,22 +1,13 @@
--- Place this LocalScript inside StarterGui
--- It creates the entire Shop GUI from scratch via code
-
+-- LocalScript - paste inside StarterGui
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local localPlayer = Players.LocalPlayer
 
--- ============================================================
--- BALANCE (starts at 211,500, deducted on purchase)
--- ============================================================
 local balance = 211500
 local selectedPlayer = nil
 local currentItemName = ""
 local currentItemPrice = 0
 
--- ============================================================
--- HELPER: Format number with commas
--- ============================================================
 local function formatNumber(n)
 	local s = tostring(math.floor(n))
 	local result = ""
@@ -25,848 +16,873 @@ local function formatNumber(n)
 		if count > 0 and count % 3 == 0 then
 			result = "," .. result
 		end
-		result = s:sub(i,i) .. result
+		result = s:sub(i, i) .. result
 		count = count + 1
 	end
 	return result
 end
 
--- ============================================================
--- HELPER: Create instance shorthand
--- ============================================================
-local function create(class, props, parent)
-	local obj = Instance.new(class)
-	for k,v in pairs(props) do
-		obj[k] = v
-	end
-	if parent then obj.Parent = parent end
-	return obj
+local function newCorner(parent, radius)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, radius or 6)
+	c.Parent = parent
 end
 
--- ============================================================
+local function newStroke(parent, color, thickness)
+	local s = Instance.new("UIStroke")
+	s.Color = color
+	s.Thickness = thickness or 2
+	s.Parent = parent
+end
+
+-- =============================================
 -- SCREEN GUI
--- ============================================================
-local screenGui = create("ScreenGui", {
-	Name = "ShopGUI",
-	ResetOnSpawn = false,
-	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-}, localPlayer.PlayerGui)
+-- =============================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ShopGUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 
--- ============================================================
+-- =============================================
 -- OPEN BUTTON (left side)
--- ============================================================
-local openBtn = create("TextButton", {
-	Name = "OpenBtn",
-	Size = UDim2.new(0, 38, 0, 120),
-	Position = UDim2.new(0, 10, 0.5, -60),
-	BackgroundColor3 = Color3.fromRGB(45, 120, 45),
-	BorderSizePixel = 0,
-	Text = "SHOP",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 14,
-	ZIndex = 2,
-}, screenGui)
-create("UICorner", {CornerRadius = UDim.new(0,8)}, openBtn)
-create("UIStroke", {Color = Color3.fromRGB(30,90,30), Thickness = 2}, openBtn)
+-- =============================================
+local openBtn = Instance.new("TextButton")
+openBtn.Size = UDim2.new(0, 40, 0, 100)
+openBtn.Position = UDim2.new(0, 8, 0.5, -50)
+openBtn.BackgroundColor3 = Color3.fromRGB(50, 130, 50)
+openBtn.BorderSizePixel = 0
+openBtn.Text = "SHOP"
+openBtn.TextColor3 = Color3.new(1,1,1)
+openBtn.Font = Enum.Font.GothamBlack
+openBtn.TextSize = 15
+openBtn.ZIndex = 2
+openBtn.Parent = screenGui
+newCorner(openBtn, 8)
+newStroke(openBtn, Color3.fromRGB(20,80,20), 2)
 
--- ============================================================
+-- =============================================
 -- SHOP FRAME
--- ============================================================
-local shopFrame = create("Frame", {
-	Name = "ShopFrame",
-	Size = UDim2.new(0, 520, 0, 430),
-	Position = UDim2.new(0.5, -260, 0.5, -215),
-	BackgroundColor3 = Color3.fromRGB(20, 50, 20),
-	BorderSizePixel = 0,
-	Visible = false,
-	ZIndex = 5,
-}, screenGui)
-create("UICorner", {CornerRadius = UDim.new(0,8)}, shopFrame)
-create("UIStroke", {Color = Color3.fromRGB(76,175,80), Thickness = 3}, shopFrame)
+-- =============================================
+local shopFrame = Instance.new("Frame")
+shopFrame.Size = UDim2.new(0, 530, 0, 420)
+shopFrame.Position = UDim2.new(0.5, -265, 0.5, -210)
+shopFrame.BackgroundColor3 = Color3.fromRGB(18, 48, 18)
+shopFrame.BorderSizePixel = 0
+shopFrame.Visible = false
+shopFrame.ZIndex = 5
+shopFrame.Parent = screenGui
+newCorner(shopFrame, 8)
+newStroke(shopFrame, Color3.fromRGB(76,175,80), 3)
 
--- Header bar
-local shopHeader = create("Frame", {
-	Size = UDim2.new(1,0,0,50),
-	BackgroundColor3 = Color3.fromRGB(20,50,20),
-	BorderSizePixel = 0,
-	ZIndex = 6,
-}, shopFrame)
+-- Shop Header
+local shopHeader = Instance.new("Frame")
+shopHeader.Size = UDim2.new(1, 0, 0, 50)
+shopHeader.BackgroundColor3 = Color3.fromRGB(18, 48, 18)
+shopHeader.BorderSizePixel = 0
+shopHeader.ZIndex = 6
+shopHeader.Parent = shopFrame
 
-create("TextLabel", {
-	Size = UDim2.new(0,90,1,0),
-	Position = UDim2.new(0,8,0,0),
-	BackgroundTransparency = 1,
-	Text = "SHOP",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 26,
-	ZIndex = 7,
-}, shopHeader)
+local shopTitle = Instance.new("TextLabel")
+shopTitle.Size = UDim2.new(0, 80, 1, 0)
+shopTitle.Position = UDim2.new(0, 8, 0, 0)
+shopTitle.BackgroundTransparency = 1
+shopTitle.Text = "SHOP"
+shopTitle.TextColor3 = Color3.new(1,1,1)
+shopTitle.Font = Enum.Font.GothamBlack
+shopTitle.TextSize = 26
+shopTitle.ZIndex = 7
+shopTitle.Parent = shopHeader
 
--- Tab buttons
-local tabData = {
-	{text="GEAR",       color=Color3.fromRGB(160,110,30), x=100},
-	{text="GAMEPASSES", color=Color3.fromRGB(50,100,50),  x=195},
-	{text="MONEY",      color=Color3.fromRGB(60,160,60),  x=330},
+local tabsInfo = {
+	{text="GEAR",       col=Color3.fromRGB(155,105,25), x=90},
+	{text="GAMEPASSES", col=Color3.fromRGB(45,95,45),   x=180},
+	{text="MONEY",      col=Color3.fromRGB(55,155,55),  x=320},
 }
-for _, t in ipairs(tabData) do
-	local tb = create("TextButton", {
-		Size = UDim2.new(0, 120, 0, 32),
-		Position = UDim2.new(0, t.x, 0.5, -16),
-		BackgroundColor3 = t.color,
-		BorderSizePixel = 0,
-		Text = t.text,
-		TextColor3 = Color3.new(1,1,1),
-		Font = Enum.Font.GothamBold,
-		TextSize = 13,
-		ZIndex = 7,
-	}, shopHeader)
-	create("UICorner", {CornerRadius = UDim.new(0,6)}, tb)
+for _, t in ipairs(tabsInfo) do
+	local tb = Instance.new("TextButton")
+	tb.Size = UDim2.new(0, 128, 0, 34)
+	tb.Position = UDim2.new(0, t.x, 0.5, -17)
+	tb.BackgroundColor3 = t.col
+	tb.BorderSizePixel = 0
+	tb.Text = t.text
+	tb.TextColor3 = Color3.new(1,1,1)
+	tb.Font = Enum.Font.GothamBold
+	tb.TextSize = 13
+	tb.ZIndex = 7
+	tb.Parent = shopHeader
+	newCorner(tb, 6)
 end
 
--- Close button
-local shopClose = create("TextButton", {
-	Size = UDim2.new(0,38,0,34),
-	Position = UDim2.new(1,-46,0.5,-17),
-	BackgroundColor3 = Color3.fromRGB(200,40,40),
-	BorderSizePixel = 0,
-	Text = "X",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 16,
-	ZIndex = 7,
-}, shopHeader)
-create("UICorner", {CornerRadius = UDim.new(0,6)}, shopClose)
+local shopCloseBtn = Instance.new("TextButton")
+shopCloseBtn.Size = UDim2.new(0, 38, 0, 34)
+shopCloseBtn.Position = UDim2.new(1, -46, 0.5, -17)
+shopCloseBtn.BackgroundColor3 = Color3.fromRGB(204, 40, 40)
+shopCloseBtn.BorderSizePixel = 0
+shopCloseBtn.Text = "X"
+shopCloseBtn.TextColor3 = Color3.new(1,1,1)
+shopCloseBtn.Font = Enum.Font.GothamBold
+shopCloseBtn.TextSize = 16
+shopCloseBtn.ZIndex = 7
+shopCloseBtn.Parent = shopHeader
+newCorner(shopCloseBtn, 6)
 
 -- GAMEPASSES label
-create("TextLabel", {
-	Size = UDim2.new(1,0,0,32),
-	Position = UDim2.new(0,0,0,50),
-	BackgroundColor3 = Color3.fromRGB(20,50,20),
-	BorderSizePixel = 0,
-	Text = "GAMEPASSES",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 18,
-	ZIndex = 6,
-}, shopFrame)
+local gpLabel = Instance.new("TextLabel")
+gpLabel.Size = UDim2.new(1, 0, 0, 30)
+gpLabel.Position = UDim2.new(0, 0, 0, 52)
+gpLabel.BackgroundColor3 = Color3.fromRGB(18, 48, 18)
+gpLabel.BorderSizePixel = 0
+gpLabel.Text = "GAMEPASSES"
+gpLabel.TextColor3 = Color3.new(1,1,1)
+gpLabel.Font = Enum.Font.GothamBlack
+gpLabel.TextSize = 17
+gpLabel.ZIndex = 6
+gpLabel.Parent = shopFrame
 
--- ============================================================
+-- =============================================
 -- ADMIN PANEL CARD
--- ============================================================
-local adminCard = create("Frame", {
-	Size = UDim2.new(1,-24,0,90),
-	Position = UDim2.new(0,12,0,90),
-	BackgroundColor3 = Color3.fromRGB(12,35,12),
-	BorderSizePixel = 0,
-	ZIndex = 6,
-}, shopFrame)
-create("UICorner", {CornerRadius = UDim.new(0,8)}, adminCard)
-create("UIStroke", {Color = Color3.fromRGB(40,80,40), Thickness = 2}, adminCard)
+-- =============================================
+local adminCard = Instance.new("Frame")
+adminCard.Size = UDim2.new(1, -24, 0, 92)
+adminCard.Position = UDim2.new(0, 12, 0, 88)
+adminCard.BackgroundColor3 = Color3.fromRGB(10, 32, 10)
+adminCard.BorderSizePixel = 0
+adminCard.ZIndex = 6
+adminCard.Parent = shopFrame
+newCorner(adminCard, 8)
+newStroke(adminCard, Color3.fromRGB(40,80,40), 2)
 
--- Admin Panel title
-create("TextLabel", {
-	Size = UDim2.new(0,200,0,24),
-	Position = UDim2.new(0,10,0,8),
-	BackgroundTransparency = 1,
-	Text = "ADMIN PANEL",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 17,
-	ZIndex = 7,
-}, adminCard)
+local adminTitle = Instance.new("TextLabel")
+adminTitle.Size = UDim2.new(0, 210, 0, 24)
+adminTitle.Position = UDim2.new(0, 10, 0, 8)
+adminTitle.BackgroundTransparency = 1
+adminTitle.Text = "ADMIN PANEL"
+adminTitle.TextColor3 = Color3.new(1,1,1)
+adminTitle.Font = Enum.Font.GothamBlack
+adminTitle.TextSize = 17
+adminTitle.TextXAlignment = Enum.TextXAlignment.Left
+adminTitle.ZIndex = 7
+adminTitle.Parent = adminCard
 
--- Rainbow "Get Admin Commands" label (animated via script)
-local rainbowLabel = create("TextLabel", {
-	Size = UDim2.new(0,200,0,20),
-	Position = UDim2.new(0,10,0,32),
-	BackgroundTransparency = 1,
-	Text = "Get Admin Commands",
-	TextColor3 = Color3.fromRGB(255,80,80),
-	Font = Enum.Font.GothamBold,
-	TextSize = 13,
-	ZIndex = 7,
-}, adminCard)
+-- Rainbow label (color set by RunService below)
+local rainbowLabel = Instance.new("TextLabel")
+rainbowLabel.Size = UDim2.new(0, 210, 0, 20)
+rainbowLabel.Position = UDim2.new(0, 10, 0, 33)
+rainbowLabel.BackgroundTransparency = 1
+rainbowLabel.Text = "Get Admin Commands"
+rainbowLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+rainbowLabel.Font = Enum.Font.GothamBold
+rainbowLabel.TextSize = 13
+rainbowLabel.TextXAlignment = Enum.TextXAlignment.Left
+rainbowLabel.ZIndex = 7
+rainbowLabel.Parent = adminCard
 
--- cmds text
-create("TextLabel", {
-	Size = UDim2.new(0,200,0,28),
-	Position = UDim2.new(0,10,0,52),
-	BackgroundTransparency = 1,
-	Text = "Type ;cmds in chat for\na list of commands!",
-	TextColor3 = Color3.fromRGB(200,200,200),
-	Font = Enum.Font.Gotham,
-	TextSize = 11,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	ZIndex = 7,
-}, adminCard)
+local cmdsLabel = Instance.new("TextLabel")
+cmdsLabel.Size = UDim2.new(0, 210, 0, 32)
+cmdsLabel.Position = UDim2.new(0, 10, 0, 53)
+cmdsLabel.BackgroundTransparency = 1
+cmdsLabel.Text = "Type ;cmds in chat for\na list of commands!"
+cmdsLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+cmdsLabel.Font = Enum.Font.Gotham
+cmdsLabel.TextSize = 11
+cmdsLabel.TextXAlignment = Enum.TextXAlignment.Left
+cmdsLabel.ZIndex = 7
+cmdsLabel.Parent = adminCard
 
 -- AP logo box
-local apBox = create("Frame", {
-	Size = UDim2.new(0,60,0,60),
-	Position = UDim2.new(0,220,0,15),
-	BackgroundColor3 = Color3.fromRGB(120,120,120),
-	BorderSizePixel = 0,
-	ZIndex = 7,
-}, adminCard)
-create("UICorner", {CornerRadius = UDim.new(0,4)}, apBox)
-create("TextLabel", {
-	Size = UDim2.new(1,0,1,0),
-	BackgroundTransparency = 1,
-	Text = "AP",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 22,
-	ZIndex = 8,
-}, apBox)
+local apBox = Instance.new("Frame")
+apBox.Size = UDim2.new(0, 64, 0, 64)
+apBox.Position = UDim2.new(0, 228, 0, 14)
+apBox.BackgroundColor3 = Color3.fromRGB(130, 130, 130)
+apBox.BorderSizePixel = 0
+apBox.ZIndex = 7
+apBox.Parent = adminCard
+newCorner(apBox, 4)
 
--- Worth (strikethrough look)
-create("TextLabel", {
-	Size = UDim2.new(0,130,0,20),
-	Position = UDim2.new(0,310,0,10),
-	BackgroundTransparency = 1,
-	Text = "Worth  ⊙ 9999",
-	TextColor3 = Color3.fromRGB(180,180,180),
-	Font = Enum.Font.GothamBold,
-	TextSize = 12,
-	TextDecoration = Enum.TextDecoration.Strikethrough,
-	ZIndex = 7,
-}, adminCard)
+local apLabel = Instance.new("TextLabel")
+apLabel.Size = UDim2.new(1, 0, 1, 0)
+apLabel.BackgroundTransparency = 1
+apLabel.Text = "AP"
+apLabel.TextColor3 = Color3.new(1,1,1)
+apLabel.Font = Enum.Font.GothamBlack
+apLabel.TextSize = 24
+apLabel.ZIndex = 8
+apLabel.Parent = apBox
 
--- Buy button (Admin Panel) - price 7,499
-local adminBuyBtn = create("TextButton", {
-	Size = UDim2.new(0,110,0,34),
-	Position = UDim2.new(0,315,0,38),
-	BackgroundColor3 = Color3.fromRGB(60,160,60),
-	BorderSizePixel = 0,
-	Text = "⊙ 7,499",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 16,
-	ZIndex = 7,
-}, adminCard)
-create("UICorner", {CornerRadius = UDim.new(0,6)}, adminBuyBtn)
+-- Worth label (no TextDecoration - just use strikethrough character workaround via RichText)
+local worthLabel = Instance.new("TextLabel")
+worthLabel.Size = UDim2.new(0, 150, 0, 20)
+worthLabel.Position = UDim2.new(0, 310, 0, 10)
+worthLabel.BackgroundTransparency = 1
+worthLabel.Text = "Worth  R$ 9999"
+worthLabel.RichText = true
+worthLabel.TextColor3 = Color3.fromRGB(170, 170, 170)
+worthLabel.Font = Enum.Font.GothamBold
+worthLabel.TextSize = 12
+worthLabel.ZIndex = 7
+worthLabel.Parent = adminCard
 
--- ============================================================
+-- Strikethrough line over the worth label
+local strikeLine = Instance.new("Frame")
+strikeLine.Size = UDim2.new(0, 100, 0, 2)
+strikeLine.Position = UDim2.new(0, 318, 0, 19)
+strikeLine.BackgroundColor3 = Color3.fromRGB(170, 170, 170)
+strikeLine.BorderSizePixel = 0
+strikeLine.ZIndex = 8
+strikeLine.Parent = adminCard
+
+-- Admin buy button
+local adminBuyBtn = Instance.new("TextButton")
+adminBuyBtn.Size = UDim2.new(0, 118, 0, 36)
+adminBuyBtn.Position = UDim2.new(0, 318, 0, 42)
+adminBuyBtn.BackgroundColor3 = Color3.fromRGB(55, 155, 55)
+adminBuyBtn.BorderSizePixel = 0
+adminBuyBtn.Text = "R$ 7,499"
+adminBuyBtn.TextColor3 = Color3.new(1,1,1)
+adminBuyBtn.Font = Enum.Font.GothamBold
+adminBuyBtn.TextSize = 16
+adminBuyBtn.ZIndex = 7
+adminBuyBtn.Parent = adminCard
+newCorner(adminBuyBtn, 6)
+
+-- =============================================
 -- 2X MONEY CARD
--- ============================================================
-local moneyCard = create("Frame", {
-	Size = UDim2.new(0, 235, 0, 80),
-	Position = UDim2.new(0,12,0,192),
-	BackgroundColor3 = Color3.fromRGB(12,35,12),
-	BorderSizePixel = 0,
-	ZIndex = 6,
-}, shopFrame)
-create("UICorner", {CornerRadius = UDim.new(0,8)}, moneyCard)
-create("UIStroke", {Color = Color3.fromRGB(40,80,40), Thickness = 2}, moneyCard)
+-- =============================================
+local moneyCard = Instance.new("Frame")
+moneyCard.Size = UDim2.new(0, 238, 0, 82)
+moneyCard.Position = UDim2.new(0, 12, 0, 192)
+moneyCard.BackgroundColor3 = Color3.fromRGB(10, 32, 10)
+moneyCard.BorderSizePixel = 0
+moneyCard.ZIndex = 6
+moneyCard.Parent = shopFrame
+newCorner(moneyCard, 8)
+newStroke(moneyCard, Color3.fromRGB(40,80,40), 2)
 
-create("TextLabel", {
-	Size = UDim2.new(0,44,0,44),
-	Position = UDim2.new(0,8,0,8),
-	BackgroundTransparency = 1,
-	Text = "💵",
-	TextSize = 30,
-	ZIndex = 7,
-}, moneyCard)
-create("TextLabel", {
-	Size = UDim2.new(0,20,0,16),
-	Position = UDim2.new(0,34,0,34),
-	BackgroundColor3 = Color3.fromRGB(180,0,0),
-	BorderSizePixel = 0,
-	Text = "x2",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 10,
-	ZIndex = 8,
-}, moneyCard)
-create("UICorner", {CornerRadius = UDim.new(0,3)}, moneyCard:FindFirstChild("TextLabel") or moneyCard)
+local moneyIcon = Instance.new("TextLabel")
+moneyIcon.Size = UDim2.new(0, 44, 0, 44)
+moneyIcon.Position = UDim2.new(0, 6, 0.5, -22)
+moneyIcon.BackgroundTransparency = 1
+moneyIcon.Text = "$"
+moneyIcon.TextColor3 = Color3.fromRGB(50,200,50)
+moneyIcon.Font = Enum.Font.GothamBlack
+moneyIcon.TextSize = 28
+moneyIcon.ZIndex = 7
+moneyIcon.Parent = moneyCard
 
-create("TextLabel", {
-	Size = UDim2.new(0,140,0,20),
-	Position = UDim2.new(0,62,0,6),
-	BackgroundTransparency = 1,
-	Text = "2X MONEY",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 15,
-	ZIndex = 7,
-}, moneyCard)
-create("TextLabel", {
-	Size = UDim2.new(0,140,0,22),
-	Position = UDim2.new(0,62,0,26),
-	BackgroundTransparency = 1,
-	Text = "Earn twice as\nmuch money!",
-	TextColor3 = Color3.fromRGB(180,180,180),
-	Font = Enum.Font.Gotham,
-	TextSize = 11,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	ZIndex = 7,
-}, moneyCard)
+local x2Badge = Instance.new("TextLabel")
+x2Badge.Size = UDim2.new(0, 24, 0, 16)
+x2Badge.Position = UDim2.new(0, 28, 0.5, 4)
+x2Badge.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+x2Badge.BorderSizePixel = 0
+x2Badge.Text = "x2"
+x2Badge.TextColor3 = Color3.new(1,1,1)
+x2Badge.Font = Enum.Font.GothamBold
+x2Badge.TextSize = 10
+x2Badge.ZIndex = 8
+x2Badge.Parent = moneyCard
+newCorner(x2Badge, 3)
 
-local moneyBuyBtn = create("TextButton", {
-	Size = UDim2.new(0,90,0,28),
-	Position = UDim2.new(0,62,0,50),
-	BackgroundColor3 = Color3.fromRGB(60,160,60),
-	BorderSizePixel = 0,
-	Text = "⊙ 119",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 14,
-	ZIndex = 7,
-}, moneyCard)
-create("UICorner", {CornerRadius = UDim.new(0,6)}, moneyBuyBtn)
+local moneyTitle = Instance.new("TextLabel")
+moneyTitle.Size = UDim2.new(0, 155, 0, 22)
+moneyTitle.Position = UDim2.new(0, 58, 0, 8)
+moneyTitle.BackgroundTransparency = 1
+moneyTitle.Text = "2X MONEY"
+moneyTitle.TextColor3 = Color3.new(1,1,1)
+moneyTitle.Font = Enum.Font.GothamBlack
+moneyTitle.TextSize = 15
+moneyTitle.TextXAlignment = Enum.TextXAlignment.Left
+moneyTitle.ZIndex = 7
+moneyTitle.Parent = moneyCard
 
--- ============================================================
+local moneyDesc = Instance.new("TextLabel")
+moneyDesc.Size = UDim2.new(0, 155, 0, 24)
+moneyDesc.Position = UDim2.new(0, 58, 0, 30)
+moneyDesc.BackgroundTransparency = 1
+moneyDesc.Text = "Earn twice as\nmuch money!"
+moneyDesc.TextColor3 = Color3.fromRGB(180, 180, 180)
+moneyDesc.Font = Enum.Font.Gotham
+moneyDesc.TextSize = 11
+moneyDesc.TextXAlignment = Enum.TextXAlignment.Left
+moneyDesc.ZIndex = 7
+moneyDesc.Parent = moneyCard
+
+local moneyBuyBtn = Instance.new("TextButton")
+moneyBuyBtn.Size = UDim2.new(0, 96, 0, 28)
+moneyBuyBtn.Position = UDim2.new(0, 58, 0, 52)
+moneyBuyBtn.BackgroundColor3 = Color3.fromRGB(55, 155, 55)
+moneyBuyBtn.BorderSizePixel = 0
+moneyBuyBtn.Text = "R$ 119"
+moneyBuyBtn.TextColor3 = Color3.new(1,1,1)
+moneyBuyBtn.Font = Enum.Font.GothamBold
+moneyBuyBtn.TextSize = 14
+moneyBuyBtn.ZIndex = 7
+moneyBuyBtn.Parent = moneyCard
+newCorner(moneyBuyBtn, 6)
+
+-- =============================================
 -- VIP CARD
--- ============================================================
-local vipCard = create("Frame", {
-	Size = UDim2.new(0, 235, 0, 80),
-	Position = UDim2.new(0,273,0,192),
-	BackgroundColor3 = Color3.fromRGB(12,35,12),
-	BorderSizePixel = 0,
-	ZIndex = 6,
-}, shopFrame)
-create("UICorner", {CornerRadius = UDim.new(0,8)}, vipCard)
-create("UIStroke", {Color = Color3.fromRGB(40,80,40), Thickness = 2}, vipCard)
+-- =============================================
+local vipCard = Instance.new("Frame")
+vipCard.Size = UDim2.new(0, 238, 0, 82)
+vipCard.Position = UDim2.new(0, 280, 0, 192)
+vipCard.BackgroundColor3 = Color3.fromRGB(10, 32, 10)
+vipCard.BorderSizePixel = 0
+vipCard.ZIndex = 6
+vipCard.Parent = shopFrame
+newCorner(vipCard, 8)
+newStroke(vipCard, Color3.fromRGB(40,80,40), 2)
 
-create("TextLabel", {
-	Size = UDim2.new(0,50,0,44),
-	Position = UDim2.new(0,8,0,8),
-	BackgroundTransparency = 1,
-	Text = "VIP",
-	TextColor3 = Color3.fromRGB(255,215,0),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 26,
-	ZIndex = 7,
-}, vipCard)
-create("TextLabel", {
-	Size = UDim2.new(0,150,0,20),
-	Position = UDim2.new(0,65,0,6),
-	BackgroundTransparency = 1,
-	Text = "VIP",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 15,
-	ZIndex = 7,
-}, vipCard)
-create("TextLabel", {
-	Size = UDim2.new(0,150,0,22),
-	Position = UDim2.new(0,65,0,26),
-	BackgroundTransparency = 1,
-	Text = "Many benefits\nincluding multi!",
-	TextColor3 = Color3.fromRGB(180,180,180),
-	Font = Enum.Font.Gotham,
-	TextSize = 11,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	ZIndex = 7,
-}, vipCard)
+local vipIcon = Instance.new("TextLabel")
+vipIcon.Size = UDim2.new(0, 52, 0, 52)
+vipIcon.Position = UDim2.new(0, 6, 0.5, -26)
+vipIcon.BackgroundTransparency = 1
+vipIcon.Text = "VIP"
+vipIcon.TextColor3 = Color3.fromRGB(255, 200, 0)
+vipIcon.Font = Enum.Font.GothamBlack
+vipIcon.TextSize = 24
+vipIcon.ZIndex = 7
+vipIcon.Parent = vipCard
 
-local vipBuyBtn = create("TextButton", {
-	Size = UDim2.new(0,90,0,28),
-	Position = UDim2.new(0,65,0,50),
-	BackgroundColor3 = Color3.fromRGB(60,160,60),
-	BorderSizePixel = 0,
-	Text = "⊙ 199",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 14,
-	ZIndex = 7,
-}, vipCard)
-create("UICorner", {CornerRadius = UDim.new(0,6)}, vipBuyBtn)
+local vipTitle = Instance.new("TextLabel")
+vipTitle.Size = UDim2.new(0, 160, 0, 22)
+vipTitle.Position = UDim2.new(0, 62, 0, 8)
+vipTitle.BackgroundTransparency = 1
+vipTitle.Text = "VIP"
+vipTitle.TextColor3 = Color3.new(1,1,1)
+vipTitle.Font = Enum.Font.GothamBlack
+vipTitle.TextSize = 15
+vipTitle.TextXAlignment = Enum.TextXAlignment.Left
+vipTitle.ZIndex = 7
+vipTitle.Parent = vipCard
 
--- ============================================================
+local vipDesc = Instance.new("TextLabel")
+vipDesc.Size = UDim2.new(0, 160, 0, 24)
+vipDesc.Position = UDim2.new(0, 62, 0, 30)
+vipDesc.BackgroundTransparency = 1
+vipDesc.Text = "Many benefits\nincluding multi!"
+vipDesc.TextColor3 = Color3.fromRGB(180, 180, 180)
+vipDesc.Font = Enum.Font.Gotham
+vipDesc.TextSize = 11
+vipDesc.TextXAlignment = Enum.TextXAlignment.Left
+vipDesc.ZIndex = 7
+vipDesc.Parent = vipCard
+
+local vipBuyBtn = Instance.new("TextButton")
+vipBuyBtn.Size = UDim2.new(0, 96, 0, 28)
+vipBuyBtn.Position = UDim2.new(0, 62, 0, 52)
+vipBuyBtn.BackgroundColor3 = Color3.fromRGB(55, 155, 55)
+vipBuyBtn.BorderSizePixel = 0
+vipBuyBtn.Text = "R$ 199"
+vipBuyBtn.TextColor3 = Color3.new(1,1,1)
+vipBuyBtn.Font = Enum.Font.GothamBold
+vipBuyBtn.TextSize = 14
+vipBuyBtn.ZIndex = 7
+vipBuyBtn.Parent = vipCard
+newCorner(vipBuyBtn, 6)
+
+-- =============================================
 -- STARTER PACK BAR
--- ============================================================
-local starterBar = create("Frame", {
-	Size = UDim2.new(1,-24,0,38),
-	Position = UDim2.new(0,12,0,284),
-	BackgroundColor3 = Color3.fromRGB(50,50,50),
-	BorderSizePixel = 0,
-	ZIndex = 6,
-}, shopFrame)
-create("UICorner", {CornerRadius = UDim.new(0,6)}, starterBar)
-create("UIStroke", {Color = Color3.fromRGB(80,80,80), Thickness = 2}, starterBar)
-create("TextLabel", {
-	Size = UDim2.new(1,0,1,0),
-	BackgroundTransparency = 1,
-	Text = "STARTER PACK",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 17,
-	ZIndex = 7,
-}, starterBar)
+-- =============================================
+local starterBar = Instance.new("Frame")
+starterBar.Size = UDim2.new(1, -24, 0, 36)
+starterBar.Position = UDim2.new(0, 12, 0, 286)
+starterBar.BackgroundColor3 = Color3.fromRGB(48, 48, 48)
+starterBar.BorderSizePixel = 0
+starterBar.ZIndex = 6
+starterBar.Parent = shopFrame
+newCorner(starterBar, 6)
+newStroke(starterBar, Color3.fromRGB(80,80,80), 2)
 
--- Gift Player Button
-local giftPlayerBtn = create("TextButton", {
-	Size = UDim2.new(0,140,0,36),
-	Position = UDim2.new(1,-152,0,334),
-	BackgroundColor3 = Color3.fromRGB(30,70,30),
-	BorderSizePixel = 0,
-	Text = "🎁  Gift Player",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 14,
-	ZIndex = 7,
-}, shopFrame)
-create("UICorner", {CornerRadius = UDim.new(0,6)}, giftPlayerBtn)
-create("UIStroke", {Color = Color3.fromRGB(76,175,80), Thickness = 2}, giftPlayerBtn)
+local starterLabel = Instance.new("TextLabel")
+starterLabel.Size = UDim2.new(1, 0, 1, 0)
+starterLabel.BackgroundTransparency = 1
+starterLabel.Text = "STARTER PACK"
+starterLabel.TextColor3 = Color3.new(1,1,1)
+starterLabel.Font = Enum.Font.GothamBlack
+starterLabel.TextSize = 17
+starterLabel.ZIndex = 7
+starterLabel.Parent = starterBar
 
--- ============================================================
+-- Gift Player button
+local giftPlayerBtn = Instance.new("TextButton")
+giftPlayerBtn.Size = UDim2.new(0, 148, 0, 36)
+giftPlayerBtn.Position = UDim2.new(1, -160, 0, 334)
+giftPlayerBtn.BackgroundColor3 = Color3.fromRGB(25, 60, 25)
+giftPlayerBtn.BorderSizePixel = 0
+giftPlayerBtn.Text = "Gift Player"
+giftPlayerBtn.TextColor3 = Color3.new(1,1,1)
+giftPlayerBtn.Font = Enum.Font.GothamBold
+giftPlayerBtn.TextSize = 14
+giftPlayerBtn.ZIndex = 7
+giftPlayerBtn.Parent = shopFrame
+newCorner(giftPlayerBtn, 6)
+newStroke(giftPlayerBtn, Color3.fromRGB(76,175,80), 2)
+
+-- =============================================
 -- GIFT PLAYER FRAME
--- ============================================================
-local giftFrame = create("Frame", {
-	Name = "GiftFrame",
-	Size = UDim2.new(0,340,0,280),
-	Position = UDim2.new(0.5,-170,0.5,-140),
-	BackgroundColor3 = Color3.fromRGB(28,44,28),
-	BorderSizePixel = 0,
-	Visible = false,
-	ZIndex = 10,
-}, screenGui)
-create("UICorner", {CornerRadius = UDim.new(0,8)}, giftFrame)
-create("UIStroke", {Color = Color3.fromRGB(76,175,80), Thickness = 3}, giftFrame)
+-- =============================================
+local giftFrame = Instance.new("Frame")
+giftFrame.Size = UDim2.new(0, 340, 0, 260)
+giftFrame.Position = UDim2.new(0.5, -170, 0.5, -130)
+giftFrame.BackgroundColor3 = Color3.fromRGB(22, 40, 22)
+giftFrame.BorderSizePixel = 0
+giftFrame.Visible = false
+giftFrame.ZIndex = 10
+giftFrame.Parent = screenGui
+newCorner(giftFrame, 8)
+newStroke(giftFrame, Color3.fromRGB(76,175,80), 3)
 
--- Gift header
-local giftHeader = create("Frame", {
-	Size = UDim2.new(1,0,0,44),
-	BackgroundColor3 = Color3.fromRGB(18,34,18),
-	BorderSizePixel = 0,
-	ZIndex = 11,
-}, giftFrame)
-create("UICorner", {CornerRadius = UDim.new(0,6)}, giftHeader)
-create("TextLabel", {
-	Size = UDim2.new(1,0,1,0),
-	BackgroundTransparency = 1,
-	Text = "GIFT PLAYER",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 17,
-	ZIndex = 12,
-}, giftHeader)
+local giftHeader = Instance.new("Frame")
+giftHeader.Size = UDim2.new(1, 0, 0, 44)
+giftHeader.BackgroundColor3 = Color3.fromRGB(14, 28, 14)
+giftHeader.BorderSizePixel = 0
+giftHeader.ZIndex = 11
+giftHeader.Parent = giftFrame
+newCorner(giftHeader, 6)
 
-local giftClose = create("TextButton", {
-	Size = UDim2.new(0,32,0,28),
-	Position = UDim2.new(1,-38,0.5,-14),
-	BackgroundColor3 = Color3.fromRGB(200,40,40),
-	BorderSizePixel = 0,
-	Text = "X",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 14,
-	ZIndex = 12,
-}, giftHeader)
-create("UICorner", {CornerRadius = UDim.new(0,5)}, giftClose)
+local giftTitle = Instance.new("TextLabel")
+giftTitle.Size = UDim2.new(1, 0, 1, 0)
+giftTitle.BackgroundTransparency = 1
+giftTitle.Text = "GIFT PLAYER"
+giftTitle.TextColor3 = Color3.new(1,1,1)
+giftTitle.Font = Enum.Font.GothamBlack
+giftTitle.TextSize = 17
+giftTitle.ZIndex = 12
+giftTitle.Parent = giftHeader
 
--- Gift body / player list area
-local giftBody = create("ScrollingFrame", {
-	Size = UDim2.new(1,-16,1,-60),
-	Position = UDim2.new(0,8,0,50),
-	BackgroundColor3 = Color3.fromRGB(18,30,18),
-	BorderSizePixel = 0,
-	ScrollBarThickness = 4,
-	ZIndex = 11,
-}, giftFrame)
-create("UICorner", {CornerRadius = UDim.new(0,4)}, giftBody)
-local giftListLayout = create("UIListLayout", {
-	SortOrder = Enum.SortOrder.LayoutOrder,
-	Padding = UDim.new(0,6),
-}, giftBody)
+local giftClose = Instance.new("TextButton")
+giftClose.Size = UDim2.new(0, 32, 0, 28)
+giftClose.Position = UDim2.new(1, -38, 0.5, -14)
+giftClose.BackgroundColor3 = Color3.fromRGB(204, 40, 40)
+giftClose.BorderSizePixel = 0
+giftClose.Text = "X"
+giftClose.TextColor3 = Color3.new(1,1,1)
+giftClose.Font = Enum.Font.GothamBold
+giftClose.TextSize = 13
+giftClose.ZIndex = 12
+giftClose.Parent = giftHeader
+newCorner(giftClose, 5)
 
--- ============================================================
+local giftScroll = Instance.new("ScrollingFrame")
+giftScroll.Size = UDim2.new(1, -16, 1, -54)
+giftScroll.Position = UDim2.new(0, 8, 0, 50)
+giftScroll.BackgroundColor3 = Color3.fromRGB(14, 26, 14)
+giftScroll.BorderSizePixel = 0
+giftScroll.ScrollBarThickness = 4
+giftScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+giftScroll.ZIndex = 11
+giftScroll.Parent = giftFrame
+newCorner(giftScroll, 4)
+
+local giftLayout = Instance.new("UIListLayout")
+giftLayout.SortOrder = Enum.SortOrder.LayoutOrder
+giftLayout.Padding = UDim.new(0, 6)
+giftLayout.Parent = giftScroll
+
+local giftPadding = Instance.new("UIPadding")
+giftPadding.PaddingTop = UDim.new(0, 4)
+giftPadding.PaddingLeft = UDim.new(0, 4)
+giftPadding.PaddingRight = UDim.new(0, 4)
+giftPadding.Parent = giftScroll
+
+-- =============================================
 -- BUY ITEM FRAME
--- ============================================================
-local buyFrame = create("Frame", {
-	Name = "BuyFrame",
-	Size = UDim2.new(0,380,0,180),
-	Position = UDim2.new(0.5,-190,0.5,-90),
-	BackgroundColor3 = Color3.fromRGB(22,22,35),
-	BorderSizePixel = 0,
-	Visible = false,
-	ZIndex = 15,
-}, screenGui)
-create("UICorner", {CornerRadius = UDim.new(0,10)}, buyFrame)
-create("UIStroke", {Color = Color3.fromRGB(80,80,100), Thickness = 3}, buyFrame)
+-- =============================================
+local buyFrame = Instance.new("Frame")
+buyFrame.Size = UDim2.new(0, 380, 0, 175)
+buyFrame.Position = UDim2.new(0.5, -190, 0.5, -87)
+buyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 32)
+buyFrame.BorderSizePixel = 0
+buyFrame.Visible = false
+buyFrame.ZIndex = 15
+buyFrame.Parent = screenGui
+newCorner(buyFrame, 10)
+newStroke(buyFrame, Color3.fromRGB(80,80,100), 3)
 
--- Buy header
-local buyHeader = create("Frame", {
-	Size = UDim2.new(1,0,0,44),
-	BackgroundColor3 = Color3.fromRGB(16,16,26),
-	BorderSizePixel = 0,
-	ZIndex = 16,
-}, buyFrame)
-create("UICorner", {CornerRadius = UDim.new(0,8)}, buyHeader)
+local buyHeader = Instance.new("Frame")
+buyHeader.Size = UDim2.new(1, 0, 0, 44)
+buyHeader.BackgroundColor3 = Color3.fromRGB(14, 14, 24)
+buyHeader.BorderSizePixel = 0
+buyHeader.ZIndex = 16
+buyHeader.Parent = buyFrame
+newCorner(buyHeader, 8)
 
-create("TextLabel", {
-	Size = UDim2.new(0,100,1,0),
-	Position = UDim2.new(0,10,0,0),
-	BackgroundTransparency = 1,
-	Text = "Buy item",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 16,
-	ZIndex = 17,
-}, buyHeader)
+local buyTitleLbl = Instance.new("TextLabel")
+buyTitleLbl.Size = UDim2.new(0, 90, 1, 0)
+buyTitleLbl.Position = UDim2.new(0, 10, 0, 0)
+buyTitleLbl.BackgroundTransparency = 1
+buyTitleLbl.Text = "Buy item"
+buyTitleLbl.TextColor3 = Color3.new(1,1,1)
+buyTitleLbl.Font = Enum.Font.GothamBlack
+buyTitleLbl.TextSize = 16
+buyTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+buyTitleLbl.ZIndex = 17
+buyTitleLbl.Parent = buyHeader
 
-local balanceLabel = create("TextLabel", {
-	Size = UDim2.new(0,120,1,0),
-	Position = UDim2.new(0.5,-60,0,0),
-	BackgroundTransparency = 1,
-	Text = "⊙ " .. formatNumber(balance),
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 14,
-	ZIndex = 17,
-}, buyHeader)
+local balanceLabel = Instance.new("TextLabel")
+balanceLabel.Size = UDim2.new(0, 140, 1, 0)
+balanceLabel.Position = UDim2.new(1, -190, 0, 0)
+balanceLabel.BackgroundTransparency = 1
+balanceLabel.Text = "R$ " .. formatNumber(balance)
+balanceLabel.TextColor3 = Color3.new(1,1,1)
+balanceLabel.Font = Enum.Font.GothamBold
+balanceLabel.TextSize = 14
+balanceLabel.TextXAlignment = Enum.TextXAlignment.Right
+balanceLabel.ZIndex = 17
+balanceLabel.Parent = buyHeader
 
-local buyClose = create("TextButton", {
-	Size = UDim2.new(0,30,0,26),
-	Position = UDim2.new(1,-36,0.5,-13),
-	BackgroundColor3 = Color3.fromRGB(200,40,40),
-	BorderSizePixel = 0,
-	Text = "X",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 13,
-	ZIndex = 17,
-}, buyHeader)
-create("UICorner", {CornerRadius = UDim.new(0,5)}, buyClose)
+local buyClose = Instance.new("TextButton")
+buyClose.Size = UDim2.new(0, 30, 0, 26)
+buyClose.Position = UDim2.new(1, -36, 0.5, -13)
+buyClose.BackgroundColor3 = Color3.fromRGB(204, 40, 40)
+buyClose.BorderSizePixel = 0
+buyClose.Text = "X"
+buyClose.TextColor3 = Color3.new(1,1,1)
+buyClose.Font = Enum.Font.GothamBold
+buyClose.TextSize = 13
+buyClose.ZIndex = 17
+buyClose.Parent = buyHeader
+newCorner(buyClose, 5)
 
--- Item row
-local hdBox = create("Frame", {
-	Size = UDim2.new(0,56,0,56),
-	Position = UDim2.new(0,16,0,54),
-	BackgroundColor3 = Color3.fromRGB(90,90,90),
-	BorderSizePixel = 0,
-	ZIndex = 16,
-}, buyFrame)
-create("UICorner", {CornerRadius = UDim.new(0,6)}, hdBox)
-create("TextLabel", {
-	Size = UDim2.new(1,0,1,0),
-	BackgroundTransparency = 1,
-	Text = "HD",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 20,
-	ZIndex = 17,
-}, hdBox)
+local hdBox = Instance.new("Frame")
+hdBox.Size = UDim2.new(0, 56, 0, 56)
+hdBox.Position = UDim2.new(0, 16, 0, 52)
+hdBox.BackgroundColor3 = Color3.fromRGB(85, 85, 85)
+hdBox.BorderSizePixel = 0
+hdBox.ZIndex = 16
+hdBox.Parent = buyFrame
+newCorner(hdBox, 6)
 
-local buyItemNameLabel = create("TextLabel", {
-	Size = UDim2.new(0,270,0,24),
-	Position = UDim2.new(0,84,0,58),
-	BackgroundTransparency = 1,
-	Text = "[GIFT] ADMIN PANEL",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 14,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	ZIndex = 16,
-}, buyFrame)
+local hdLabel = Instance.new("TextLabel")
+hdLabel.Size = UDim2.new(1, 0, 1, 0)
+hdLabel.BackgroundTransparency = 1
+hdLabel.Text = "HD"
+hdLabel.TextColor3 = Color3.new(1,1,1)
+hdLabel.Font = Enum.Font.GothamBlack
+hdLabel.TextSize = 20
+hdLabel.ZIndex = 17
+hdLabel.Parent = hdBox
 
-local buyItemPriceLabel = create("TextLabel", {
-	Size = UDim2.new(0,270,0,20),
-	Position = UDim2.new(0,84,0,82),
-	BackgroundTransparency = 1,
-	Text = "⊙ 7,499",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 13,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	ZIndex = 16,
-}, buyFrame)
+local buyItemNameLabel = Instance.new("TextLabel")
+buyItemNameLabel.Size = UDim2.new(0, 270, 0, 24)
+buyItemNameLabel.Position = UDim2.new(0, 82, 0, 54)
+buyItemNameLabel.BackgroundTransparency = 1
+buyItemNameLabel.Text = "[GIFT] ADMIN PANEL"
+buyItemNameLabel.TextColor3 = Color3.new(1,1,1)
+buyItemNameLabel.Font = Enum.Font.GothamBold
+buyItemNameLabel.TextSize = 14
+buyItemNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+buyItemNameLabel.ZIndex = 16
+buyItemNameLabel.Parent = buyFrame
 
-local buyConfirmBtn = create("TextButton", {
-	Size = UDim2.new(1,-32,0,40),
-	Position = UDim2.new(0,16,0,126),
-	BackgroundColor3 = Color3.fromRGB(60,100,240),
-	BorderSizePixel = 0,
-	Text = "Buy",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 18,
-	ZIndex = 16,
-}, buyFrame)
-create("UICorner", {CornerRadius = UDim.new(0,8)}, buyConfirmBtn)
+local buyItemPriceLabel = Instance.new("TextLabel")
+buyItemPriceLabel.Size = UDim2.new(0, 270, 0, 20)
+buyItemPriceLabel.Position = UDim2.new(0, 82, 0, 78)
+buyItemPriceLabel.BackgroundTransparency = 1
+buyItemPriceLabel.Text = "R$ 7,499"
+buyItemPriceLabel.TextColor3 = Color3.new(1,1,1)
+buyItemPriceLabel.Font = Enum.Font.GothamBold
+buyItemPriceLabel.TextSize = 13
+buyItemPriceLabel.TextXAlignment = Enum.TextXAlignment.Left
+buyItemPriceLabel.ZIndex = 16
+buyItemPriceLabel.Parent = buyFrame
 
--- ============================================================
+local buyConfirmBtn = Instance.new("TextButton")
+buyConfirmBtn.Size = UDim2.new(1, -32, 0, 40)
+buyConfirmBtn.Position = UDim2.new(0, 16, 0, 122)
+buyConfirmBtn.BackgroundColor3 = Color3.fromRGB(58, 98, 240)
+buyConfirmBtn.BorderSizePixel = 0
+buyConfirmBtn.Text = "Buy"
+buyConfirmBtn.TextColor3 = Color3.new(1,1,1)
+buyConfirmBtn.Font = Enum.Font.GothamBlack
+buyConfirmBtn.TextSize = 18
+buyConfirmBtn.ZIndex = 16
+buyConfirmBtn.Parent = buyFrame
+newCorner(buyConfirmBtn, 8)
+
+-- =============================================
 -- PURCHASE COMPLETE FRAME
--- ============================================================
-local completeFrame = create("Frame", {
-	Name = "CompleteFrame",
-	Size = UDim2.new(0,380,0,220),
-	Position = UDim2.new(0.5,-190,0.5,-110),
-	BackgroundColor3 = Color3.fromRGB(22,22,35),
-	BorderSizePixel = 0,
-	Visible = false,
-	ZIndex = 20,
-}, screenGui)
-create("UICorner", {CornerRadius = UDim.new(0,10)}, completeFrame)
-create("UIStroke", {Color = Color3.fromRGB(80,80,100), Thickness = 3}, completeFrame)
+-- =============================================
+local completeFrame = Instance.new("Frame")
+completeFrame.Size = UDim2.new(0, 380, 0, 220)
+completeFrame.Position = UDim2.new(0.5, -190, 0.5, -110)
+completeFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 32)
+completeFrame.BorderSizePixel = 0
+completeFrame.Visible = false
+completeFrame.ZIndex = 20
+completeFrame.Parent = screenGui
+newCorner(completeFrame, 10)
+newStroke(completeFrame, Color3.fromRGB(80,80,100), 3)
 
-local completeHeader = create("Frame", {
-	Size = UDim2.new(1,0,0,44),
-	BackgroundColor3 = Color3.fromRGB(16,16,26),
-	BorderSizePixel = 0,
-	ZIndex = 21,
-}, completeFrame)
-create("UICorner", {CornerRadius = UDim.new(0,8)}, completeHeader)
-create("TextLabel", {
-	Size = UDim2.new(1,-50,1,0),
-	Position = UDim2.new(0,10,0,0),
-	BackgroundTransparency = 1,
-	Text = "Purchase completed",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 16,
-	ZIndex = 22,
-}, completeHeader)
+local completeHeader = Instance.new("Frame")
+completeHeader.Size = UDim2.new(1, 0, 0, 44)
+completeHeader.BackgroundColor3 = Color3.fromRGB(14, 14, 24)
+completeHeader.BorderSizePixel = 0
+completeHeader.ZIndex = 21
+completeHeader.Parent = completeFrame
+newCorner(completeHeader, 8)
 
-local completeClose = create("TextButton", {
-	Size = UDim2.new(0,30,0,26),
-	Position = UDim2.new(1,-36,0.5,-13),
-	BackgroundColor3 = Color3.fromRGB(200,40,40),
-	BorderSizePixel = 0,
-	Text = "X",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBold,
-	TextSize = 13,
-	ZIndex = 22,
-}, completeHeader)
-create("UICorner", {CornerRadius = UDim.new(0,5)}, completeClose)
+local completeTitleLbl = Instance.new("TextLabel")
+completeTitleLbl.Size = UDim2.new(1, -50, 1, 0)
+completeTitleLbl.Position = UDim2.new(0, 10, 0, 0)
+completeTitleLbl.BackgroundTransparency = 1
+completeTitleLbl.Text = "Purchase completed"
+completeTitleLbl.TextColor3 = Color3.new(1,1,1)
+completeTitleLbl.Font = Enum.Font.GothamBlack
+completeTitleLbl.TextSize = 16
+completeTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+completeTitleLbl.ZIndex = 22
+completeTitleLbl.Parent = completeHeader
 
--- Checkmark circle
-local checkCircle = create("Frame", {
-	Size = UDim2.new(0,60,0,60),
-	Position = UDim2.new(0.5,-30,0,54),
-	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-	ZIndex = 21,
-}, completeFrame)
-create("UICorner", {CornerRadius = UDim.new(0.5,0)}, checkCircle)
-create("UIStroke", {Color = Color3.fromRGB(150,150,150), Thickness = 3}, checkCircle)
-create("TextLabel", {
-	Size = UDim2.new(1,0,1,0),
-	BackgroundTransparency = 1,
-	Text = "✓",
-	TextColor3 = Color3.fromRGB(150,150,150),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 28,
-	ZIndex = 22,
-}, checkCircle)
+local completeClose = Instance.new("TextButton")
+completeClose.Size = UDim2.new(0, 30, 0, 26)
+completeClose.Position = UDim2.new(1, -36, 0.5, -13)
+completeClose.BackgroundColor3 = Color3.fromRGB(204, 40, 40)
+completeClose.BorderSizePixel = 0
+completeClose.Text = "X"
+completeClose.TextColor3 = Color3.new(1,1,1)
+completeClose.Font = Enum.Font.GothamBold
+completeClose.TextSize = 13
+completeClose.ZIndex = 22
+completeClose.Parent = completeHeader
+newCorner(completeClose, 5)
 
-local completeText = create("TextLabel", {
-	Size = UDim2.new(1,-30,0,40),
-	Position = UDim2.new(0,15,0,124),
-	BackgroundTransparency = 1,
-	Text = "You have successfully gifted [GIFT] ADMIN PANEL to PlayerName.",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.Gotham,
-	TextSize = 13,
-	TextWrapped = true,
-	ZIndex = 21,
-}, completeFrame)
+local checkRing = Instance.new("Frame")
+checkRing.Size = UDim2.new(0, 62, 0, 62)
+checkRing.Position = UDim2.new(0.5, -31, 0, 54)
+checkRing.BackgroundTransparency = 1
+checkRing.ZIndex = 21
+checkRing.Parent = completeFrame
+newCorner(checkRing, 31)
+newStroke(checkRing, Color3.fromRGB(150,150,150), 3)
 
-local okBtn = create("TextButton", {
-	Size = UDim2.new(1,-32,0,40),
-	Position = UDim2.new(0,16,0,168),
-	BackgroundColor3 = Color3.fromRGB(60,100,240),
-	BorderSizePixel = 0,
-	Text = "OK",
-	TextColor3 = Color3.new(1,1,1),
-	Font = Enum.Font.GothamBlack,
-	TextSize = 18,
-	ZIndex = 21,
-}, completeFrame)
-create("UICorner", {CornerRadius = UDim.new(0,8)}, okBtn)
+local checkMark = Instance.new("TextLabel")
+checkMark.Size = UDim2.new(1, 0, 1, 0)
+checkMark.BackgroundTransparency = 1
+checkMark.Text = "V"
+checkMark.TextColor3 = Color3.fromRGB(150, 150, 150)
+checkMark.Font = Enum.Font.GothamBlack
+checkMark.TextSize = 28
+checkMark.ZIndex = 22
+checkMark.Parent = checkRing
 
--- ============================================================
--- RAINBOW ANIMATION (RunService)
--- ============================================================
+local completeText = Instance.new("TextLabel")
+completeText.Size = UDim2.new(1, -30, 0, 44)
+completeText.Position = UDim2.new(0, 15, 0, 124)
+completeText.BackgroundTransparency = 1
+completeText.Text = "You have successfully gifted [GIFT] ADMIN PANEL to PlayerName."
+completeText.TextColor3 = Color3.new(1,1,1)
+completeText.Font = Enum.Font.Gotham
+completeText.TextSize = 13
+completeText.TextWrapped = true
+completeText.ZIndex = 21
+completeText.Parent = completeFrame
+
+local okBtn = Instance.new("TextButton")
+okBtn.Size = UDim2.new(1, -32, 0, 40)
+okBtn.Position = UDim2.new(0, 16, 0, 172)
+okBtn.BackgroundColor3 = Color3.fromRGB(58, 98, 240)
+okBtn.BorderSizePixel = 0
+okBtn.Text = "OK"
+okBtn.TextColor3 = Color3.new(1,1,1)
+okBtn.Font = Enum.Font.GothamBlack
+okBtn.TextSize = 18
+okBtn.ZIndex = 21
+okBtn.Parent = completeFrame
+newCorner(okBtn, 8)
+
+-- =============================================
+-- RAINBOW ANIMATION
+-- =============================================
 local rainbowColors = {
-	Color3.fromRGB(255,0,0),
-	Color3.fromRGB(255,140,0),
-	Color3.fromRGB(255,255,0),
-	Color3.fromRGB(0,255,0),
-	Color3.fromRGB(0,150,255),
-	Color3.fromRGB(150,0,255),
-	Color3.fromRGB(255,0,150),
+	Color3.fromRGB(255, 0, 0),
+	Color3.fromRGB(255, 120, 0),
+	Color3.fromRGB(255, 255, 0),
+	Color3.fromRGB(0, 255, 0),
+	Color3.fromRGB(0, 140, 255),
+	Color3.fromRGB(160, 0, 255),
+	Color3.fromRGB(255, 0, 160),
 }
-local rainbowIndex = 0
+local rainbowT = 0
 RunService.Heartbeat:Connect(function(dt)
-	rainbowIndex = rainbowIndex + dt * 3
-	local i = math.floor(rainbowIndex) % #rainbowColors + 1
-	local j = i % #rainbowColors + 1
-	local frac = rainbowIndex % 1
-	local c = rainbowColors[i]:Lerp(rainbowColors[j], frac)
-	rainbowLabel.TextColor3 = c
+	rainbowT = rainbowT + dt * 2.5
+	local total = #rainbowColors
+	local i = math.floor(rainbowT) % total + 1
+	local j = i % total + 1
+	local frac = rainbowT % 1
+	rainbowLabel.TextColor3 = rainbowColors[i]:Lerp(rainbowColors[j], frac)
 end)
 
--- ============================================================
--- POPULATE GIFT PLAYER LIST
--- ============================================================
+-- =============================================
+-- POPULATE GIFT LIST
+-- =============================================
 local function populateGiftList()
-	-- Clear old rows
-	for _, child in ipairs(giftBody:GetChildren()) do
-		if child:IsA("Frame") then child:Destroy() end
+	for _, child in ipairs(giftScroll:GetChildren()) do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
 	end
 
-	local playersInServer = Players:GetPlayers()
-	-- Exclude local player from gift list (optional, remove if you want to include self)
 	local others = {}
-	for _, p in ipairs(playersInServer) do
+	for _, p in ipairs(Players:GetPlayers()) do
 		if p ~= localPlayer then
 			table.insert(others, p)
 		end
 	end
 
 	if #others == 0 then
-		-- Show empty gray frame
-		local emptyFrame = create("Frame", {
-			Size = UDim2.new(1,0,0,100),
-			BackgroundColor3 = Color3.fromRGB(25,35,25),
-			BorderSizePixel = 0,
-			ZIndex = 12,
-		}, giftBody)
-		create("UICorner", {CornerRadius = UDim.new(0,4)}, emptyFrame)
-		giftBody.CanvasSize = UDim2.new(0,0,0,100)
+		local emptyF = Instance.new("Frame")
+		emptyF.Size = UDim2.new(1, 0, 0, 120)
+		emptyF.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+		emptyF.BorderSizePixel = 0
+		emptyF.ZIndex = 12
+		emptyF.Parent = giftScroll
+		newCorner(emptyF, 6)
+		giftScroll.CanvasSize = UDim2.new(0, 0, 0, 130)
 		return
 	end
 
 	for _, p in ipairs(others) do
-		local row = create("Frame", {
-			Size = UDim2.new(1,0,0,52),
-			BackgroundColor3 = Color3.fromRGB(30,50,30),
-			BorderSizePixel = 0,
-			ZIndex = 12,
-		}, giftBody)
-		create("UICorner", {CornerRadius = UDim.new(0,6)}, row)
-		create("UIStroke", {Color = Color3.fromRGB(50,80,50), Thickness = 1}, row)
+		local row = Instance.new("Frame")
+		row.Size = UDim2.new(1, 0, 0, 52)
+		row.BackgroundColor3 = Color3.fromRGB(30, 50, 30)
+		row.BorderSizePixel = 0
+		row.ZIndex = 12
+		row.Parent = giftScroll
+		newCorner(row, 6)
+		newStroke(row, Color3.fromRGB(50,80,50), 1)
 
-		-- Avatar image
-		local avatarImg = create("ImageLabel", {
-			Size = UDim2.new(0,38,0,38),
-			Position = UDim2.new(0,8,0.5,-19),
-			BackgroundColor3 = Color3.fromRGB(80,80,80),
-			BorderSizePixel = 0,
-			Image = "https://www.roblox.com/headshot-thumbnail/image?userId="..p.UserId.."&width=420&height=420&format=png",
-			ZIndex = 13,
-		}, row)
-		create("UICorner", {CornerRadius = UDim.new(0,4)}, avatarImg)
+		local avatar = Instance.new("ImageLabel")
+		avatar.Size = UDim2.new(0, 38, 0, 38)
+		avatar.Position = UDim2.new(0, 8, 0.5, -19)
+		avatar.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+		avatar.BorderSizePixel = 0
+		avatar.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. p.UserId .. "&width=420&height=420&format=png"
+		avatar.ZIndex = 13
+		avatar.Parent = row
+		newCorner(avatar, 4)
 
-		create("TextLabel", {
-			Size = UDim2.new(1,-110,1,0),
-			Position = UDim2.new(0,54,0,0),
-			BackgroundTransparency = 1,
-			Text = p.Name,
-			TextColor3 = Color3.new(1,1,1),
-			Font = Enum.Font.GothamBold,
-			TextSize = 14,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			ZIndex = 13,
-		}, row)
+		local nameLabel = Instance.new("TextLabel")
+		nameLabel.Size = UDim2.new(1, -100, 1, 0)
+		nameLabel.Position = UDim2.new(0, 54, 0, 0)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.Text = p.Name
+		nameLabel.TextColor3 = Color3.new(1,1,1)
+		nameLabel.Font = Enum.Font.GothamBold
+		nameLabel.TextSize = 14
+		nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+		nameLabel.ZIndex = 13
+		nameLabel.Parent = row
 
-		local giftBtn = create("TextButton", {
-			Size = UDim2.new(0,36,0,36),
-			Position = UDim2.new(1,-44,0.5,-18),
-			BackgroundColor3 = Color3.fromRGB(30,70,30),
-			BorderSizePixel = 0,
-			Text = "🎁",
-			TextSize = 18,
-			ZIndex = 13,
-		}, row)
-		create("UICorner", {CornerRadius = UDim.new(0,5)}, giftBtn)
-		create("UIStroke", {Color = Color3.fromRGB(76,175,80), Thickness = 2}, giftBtn)
+		local giftBtn = Instance.new("TextButton")
+		giftBtn.Size = UDim2.new(0, 36, 0, 36)
+		giftBtn.Position = UDim2.new(1, -44, 0.5, -18)
+		giftBtn.BackgroundColor3 = Color3.fromRGB(28, 68, 28)
+		giftBtn.BorderSizePixel = 0
+		giftBtn.Text = "[G]"
+		giftBtn.TextColor3 = Color3.new(1,1,1)
+		giftBtn.Font = Enum.Font.GothamBold
+		giftBtn.TextSize = 11
+		giftBtn.ZIndex = 13
+		giftBtn.Parent = row
+		newCorner(giftBtn, 5)
+		newStroke(giftBtn, Color3.fromRGB(76,175,80), 2)
 
-		local playerRef = p
+		-- Click gift button: save player, close gift, reopen shop
+		local pRef = p
 		giftBtn.MouseButton1Click:Connect(function()
-			selectedPlayer = playerRef.Name
+			selectedPlayer = pRef.Name
 			giftFrame.Visible = false
-			-- Update buy frame for selected item
-			buyItemNameLabel.Text = "[GIFT] " .. currentItemName:upper()
-			buyItemPriceLabel.Text = "⊙ " .. formatNumber(currentItemPrice)
-			balanceLabel.Text = "⊙ " .. formatNumber(balance)
-			buyFrame.Visible = true
+			shopFrame.Visible = true
 		end)
 	end
 
-	giftBody.CanvasSize = UDim2.new(0,0,0, #others * 58)
+	giftScroll.CanvasSize = UDim2.new(0, 0, 0, math.max(130, #others * 62))
 end
 
--- ============================================================
--- OPEN SHOP
--- ============================================================
+-- =============================================
+-- CONNECTIONS
+-- =============================================
+
+-- Open shop
 openBtn.MouseButton1Click:Connect(function()
 	shopFrame.Visible = true
 end)
 
-shopClose.MouseButton1Click:Connect(function()
+-- Close shop
+shopCloseBtn.MouseButton1Click:Connect(function()
 	shopFrame.Visible = false
 end)
 
--- ============================================================
--- GIFT PLAYER BUTTON
--- ============================================================
+-- Open gift player list
 giftPlayerBtn.MouseButton1Click:Connect(function()
 	populateGiftList()
-	giftFrame.Visible = true
-end)
-
-giftClose.MouseButton1Click:Connect(function()
-	giftFrame.Visible = false
-end)
-
--- ============================================================
--- BUY BUTTONS -> open Gift Player first
--- ============================================================
-local function openGiftFrame(itemName, itemPrice)
-	currentItemName = itemName
-	currentItemPrice = itemPrice
-	populateGiftList()
 	shopFrame.Visible = false
 	giftFrame.Visible = true
-end
+end)
 
+-- Close gift -> back to shop
+giftClose.MouseButton1Click:Connect(function()
+	giftFrame.Visible = false
+	shopFrame.Visible = true
+end)
+
+-- Admin buy button -> open buy frame
 adminBuyBtn.MouseButton1Click:Connect(function()
-	openGiftFrame("Admin Panel", 7499)
+	currentItemName = "ADMIN PANEL"
+	currentItemPrice = 7499
+	buyItemNameLabel.Text = "[GIFT] ADMIN PANEL"
+	buyItemPriceLabel.Text = "R$ " .. formatNumber(currentItemPrice)
+	balanceLabel.Text = "R$ " .. formatNumber(balance)
+	shopFrame.Visible = false
+	buyFrame.Visible = true
 end)
 
+-- 2X Money buy button -> open buy frame
 moneyBuyBtn.MouseButton1Click:Connect(function()
-	openGiftFrame("2X Money", 119)
+	currentItemName = "2X MONEY"
+	currentItemPrice = 119
+	buyItemNameLabel.Text = "[GIFT] 2X MONEY"
+	buyItemPriceLabel.Text = "R$ " .. formatNumber(currentItemPrice)
+	balanceLabel.Text = "R$ " .. formatNumber(balance)
+	shopFrame.Visible = false
+	buyFrame.Visible = true
 end)
 
+-- VIP buy button -> open buy frame
 vipBuyBtn.MouseButton1Click:Connect(function()
-	openGiftFrame("VIP", 199)
+	currentItemName = "VIP"
+	currentItemPrice = 199
+	buyItemNameLabel.Text = "[GIFT] VIP"
+	buyItemPriceLabel.Text = "R$ " .. formatNumber(currentItemPrice)
+	balanceLabel.Text = "R$ " .. formatNumber(balance)
+	shopFrame.Visible = false
+	buyFrame.Visible = true
 end)
 
--- ============================================================
--- BUY CLOSE
--- ============================================================
+-- Close buy -> back to shop
 buyClose.MouseButton1Click:Connect(function()
 	buyFrame.Visible = false
+	shopFrame.Visible = true
 end)
 
--- ============================================================
--- CONFIRM BUY
--- ============================================================
+-- Confirm purchase
 buyConfirmBtn.MouseButton1Click:Connect(function()
 	if balance >= currentItemPrice then
 		balance = balance - currentItemPrice
-		balanceLabel.Text = "⊙ " .. formatNumber(balance)
-		buyFrame.Visible = false
-		-- Show complete
-		completeText.Text = "You have successfully gifted [GIFT] " ..
-			currentItemName:upper() .. " to " .. (selectedPlayer or "Unknown") .. "."
-		completeFrame.Visible = true
 	end
+	buyFrame.Visible = false
+	local recipientName = selectedPlayer or "Unknown"
+	completeText.Text = "You have successfully gifted [GIFT] " .. currentItemName .. " to " .. recipientName .. "."
+	completeFrame.Visible = true
 end)
 
--- ============================================================
--- OK + COMPLETE CLOSE
--- ============================================================
-okBtn.MouseButton1Click:Connect(function()
+-- Close complete
+completeClose.MouseButton1Click:Connect(function()
 	completeFrame.Visible = false
 end)
 
-completeClose.MouseButton1Click:Connect(function()
+okBtn.MouseButton1Click:Connect(function()
 	completeFrame.Visible = false
 end)
