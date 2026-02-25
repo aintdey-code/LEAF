@@ -1,0 +1,2 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/aintdey-code/LEAF/refs/heads/main/beta"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/aintdey-code/IDKYET/refs/heads/main/boost"))()
