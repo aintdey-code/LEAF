@@ -6,19 +6,19 @@ local gui = Instance.new("ScreenGui")
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- COLORS
+-- SETTINGS
+local ITEM_PRICE = 7499
+local balanceAmount = 66245
+local selectedPlayer = nil
+
 local DARK_BLUE = Color3.fromRGB(35,60,180)
 local LIGHT_BLUE = Color3.fromRGB(88,101,242)
 
 --========================
--- FUNCTION: POP ANIMATION
+-- POP ANIMATION
 --========================
 local function pop(frame)
-	frame.Position = UDim2.new(0.5,-210,0.5,-100)
-	frame.Size = UDim2.fromOffset(420,230)
-
 	frame.Position = UDim2.new(0.5,-210,0.5,-90)
-
 	TweenService:Create(
 		frame,
 		TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
@@ -30,8 +30,7 @@ end
 -- BUY FRAME
 --========================
 local buyFrame = Instance.new("Frame")
-buyFrame.Size = UDim2.fromOffset(420,230)
-buyFrame.AnchorPoint = Vector2.new(0,0)
+buyFrame.Size = UDim2.fromOffset(420,260)
 buyFrame.BackgroundColor3 = Color3.fromRGB(46,46,46)
 buyFrame.BorderSizePixel = 0
 buyFrame.Parent = gui
@@ -51,30 +50,98 @@ title.TextColor3 = Color3.new(1,1,1)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = buyFrame
 
--- Robux Balance (TOP RIGHT)
-local balance = Instance.new("TextLabel")
-balance.Size = UDim2.fromOffset(120,30)
-balance.Position = UDim2.new(1,-160,0,16)
-balance.BackgroundTransparency = 1
-balance.Text = "\u{E002} 66,245"
-balance.Font = Enum.Font.Gotham
-balance.TextSize = 15
-balance.TextColor3 = Color3.fromRGB(200,200,200)
-balance.TextXAlignment = Enum.TextXAlignment.Right
-balance.Parent = buyFrame
+-- Balance display
+local balanceLabel = Instance.new("TextLabel")
+balanceLabel.Size = UDim2.fromOffset(140,30)
+balanceLabel.Position = UDim2.new(1,-170,0,16)
+balanceLabel.BackgroundTransparency = 1
+balanceLabel.Font = Enum.Font.Gotham
+balanceLabel.TextSize = 15
+balanceLabel.TextColor3 = Color3.fromRGB(200,200,200)
+balanceLabel.TextXAlignment = Enum.TextXAlignment.Right
+balanceLabel.Parent = buyFrame
 
--- Close Icon
-local close = Instance.new("ImageButton")
-close.Size = UDim2.fromOffset(24,24)
-close.Position = UDim2.new(1,-32,0,18)
-close.BackgroundTransparency = 1
-close.Image = "rbxassetid://6031094678"
-close.Parent = buyFrame
+local function updateBalance()
+	balanceLabel.Text = "\u{E002} "..balanceAmount
+end
 
--- Item Image
+updateBalance()
+
+-- Balance edit input
+local balanceBox = Instance.new("TextBox")
+balanceBox.Size = UDim2.fromOffset(120,28)
+balanceBox.Position = UDim2.new(0,20,0,50)
+balanceBox.PlaceholderText = "Set Balance"
+balanceBox.Font = Enum.Font.Gotham
+balanceBox.TextSize = 14
+balanceBox.BackgroundColor3 = Color3.fromRGB(60,60,60)
+balanceBox.TextColor3 = Color3.new(1,1,1)
+balanceBox.Parent = buyFrame
+Instance.new("UICorner", balanceBox).CornerRadius = UDim.new(0,6)
+
+balanceBox.FocusLost:Connect(function()
+	local num = tonumber(balanceBox.Text)
+	if num then
+		balanceAmount = num
+		updateBalance()
+	end
+end)
+
+-- Player dropdown
+local dropdown = Instance.new("TextButton")
+dropdown.Size = UDim2.fromOffset(180,28)
+dropdown.Position = UDim2.new(0,160,0,50)
+dropdown.Text = "Select Player"
+dropdown.Font = Enum.Font.Gotham
+dropdown.TextSize = 14
+dropdown.BackgroundColor3 = Color3.fromRGB(60,60,60)
+dropdown.TextColor3 = Color3.new(1,1,1)
+dropdown.Parent = buyFrame
+Instance.new("UICorner", dropdown).CornerRadius = UDim.new(0,6)
+
+local dropFrame = Instance.new("Frame")
+dropFrame.Size = UDim2.fromOffset(180,100)
+dropFrame.Position = UDim2.new(0,160,0,80)
+dropFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
+dropFrame.Visible = false
+dropFrame.Parent = buyFrame
+Instance.new("UICorner", dropFrame).CornerRadius = UDim.new(0,6)
+
+local layout = Instance.new("UIListLayout", dropFrame)
+
+dropdown.MouseButton1Click:Connect(function()
+	dropFrame.Visible = not dropFrame.Visible
+end)
+
+local function refreshPlayers()
+	dropFrame:ClearAllChildren()
+	layout.Parent = dropFrame
+	for _,plr in pairs(Players:GetPlayers()) do
+		if plr ~= player then
+			local btn = Instance.new("TextButton")
+			btn.Size = UDim2.new(1,0,0,24)
+			btn.Text = plr.Name
+			btn.Font = Enum.Font.Gotham
+			btn.TextSize = 14
+			btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+			btn.TextColor3 = Color3.new(1,1,1)
+			btn.Parent = dropFrame
+			
+			btn.MouseButton1Click:Connect(function()
+				selectedPlayer = plr.Name
+				dropdown.Text = plr.Name
+				dropFrame.Visible = false
+			end)
+		end
+	end
+end
+
+refreshPlayers()
+
+-- Item Image (replace with your decal anytime)
 local image = Instance.new("ImageLabel")
 image.Size = UDim2.fromOffset(70,70)
-image.Position = UDim2.new(0,20,0,65)
+image.Position = UDim2.new(0,20,0,95)
 image.BackgroundTransparency = 1
 image.Image = "rbxassetid://136656557035530"
 image.ScaleType = Enum.ScaleType.Fit
@@ -83,7 +150,7 @@ image.Parent = buyFrame
 -- Item Name
 local name = Instance.new("TextLabel")
 name.Size = UDim2.new(1,-120,0,25)
-name.Position = UDim2.new(0,110,0,70)
+name.Position = UDim2.new(0,110,0,100)
 name.BackgroundTransparency = 1
 name.Text = "[GIFT] ADMIN PANEL"
 name.Font = Enum.Font.Gotham
@@ -95,50 +162,26 @@ name.Parent = buyFrame
 -- Price
 local price = Instance.new("TextLabel")
 price.Size = UDim2.new(1,-120,0,25)
-price.Position = UDim2.new(0,110,0,100)
+price.Position = UDim2.new(0,110,0,130)
 price.BackgroundTransparency = 1
-price.Text = "\u{E002} 7,499"
+price.Text = "\u{E002} "..ITEM_PRICE
 price.Font = Enum.Font.Gotham
 price.TextSize = 15
 price.TextColor3 = Color3.fromRGB(200,200,200)
 price.TextXAlignment = Enum.TextXAlignment.Left
 price.Parent = buyFrame
 
---========================
--- BUY BUTTON
---========================
-local buttonFrame = Instance.new("Frame")
-buttonFrame.Size = UDim2.new(1,-40,0,48)
-buttonFrame.Position = UDim2.new(0,20,1,-65)
-buttonFrame.BackgroundColor3 = DARK_BLUE
-buttonFrame.Parent = buyFrame
-Instance.new("UICorner", buttonFrame).CornerRadius = UDim.new(0,8)
-
-local sweep = Instance.new("Frame")
-sweep.Size = UDim2.new(0,0,1,0)
-sweep.BackgroundColor3 = LIGHT_BLUE
-sweep.BorderSizePixel = 0
-sweep.Parent = buttonFrame
-Instance.new("UICorner", sweep).CornerRadius = UDim.new(0,8)
-
+-- Buy Button
 local buyButton = Instance.new("TextButton")
-buyButton.Size = UDim2.fromScale(1,1)
-buyButton.BackgroundTransparency = 1
+buyButton.Size = UDim2.new(1,-40,0,48)
+buyButton.Position = UDim2.new(0,20,1,-65)
+buyButton.BackgroundColor3 = LIGHT_BLUE
 buyButton.Text = "Buy"
 buyButton.Font = Enum.Font.GothamBold
 buyButton.TextSize = 18
 buyButton.TextColor3 = Color3.new(1,1,1)
-buyButton.Parent = buttonFrame
-
--- START SWEEP IMMEDIATELY
-TweenService:Create(
-	sweep,
-	TweenInfo.new(3, Enum.EasingStyle.Linear),
-	{Size = UDim2.new(1,0,1,0)}
-):Play()
-
-task.wait(3)
-buttonFrame.BackgroundColor3 = LIGHT_BLUE
+buyButton.Parent = buyFrame
+Instance.new("UICorner", buyButton).CornerRadius = UDim.new(0,8)
 
 --========================
 -- SUCCESS FRAME
@@ -148,7 +191,7 @@ successFrame.Visible = false
 successFrame.Parent = gui
 
 for _,v in pairs(successFrame:GetChildren()) do
-	if v ~= successFrame:FindFirstChildOfClass("UICorner") then
+	if not v:IsA("UICorner") then
 		v:Destroy()
 	end
 end
@@ -159,10 +202,9 @@ sTitle.Parent = successFrame
 
 local successText = Instance.new("TextLabel")
 successText.Size = UDim2.new(1,-40,0,60)
-successText.Position = UDim2.new(0,20,0,90)
+successText.Position = UDim2.new(0,20,0,120) -- LOWERED
 successText.BackgroundTransparency = 1
 successText.TextWrapped = true
-successText.Text = "You have successfully gifted [GIFT] ADMIN PANEL."
 successText.Font = Enum.Font.Gotham
 successText.TextSize = 15
 successText.TextColor3 = Color3.fromRGB(200,200,200)
@@ -181,12 +223,16 @@ okButton.Parent = successFrame
 Instance.new("UICorner", okButton).CornerRadius = UDim.new(0,8)
 
 --========================
--- BUTTON LOGIC
+-- LOGIC
 --========================
 buyButton.MouseButton1Click:Connect(function()
-	buttonFrame.BackgroundColor3 = DARK_BLUE
+	if not selectedPlayer then return end
+	if balanceAmount < ITEM_PRICE then return end
 	
-	task.wait(0.15)
+	balanceAmount -= ITEM_PRICE
+	updateBalance()
+	
+	successText.Text = "You have successfully gifted [GIFT] ADMIN PANEL to "..selectedPlayer.."."
 	
 	buyFrame.Visible = false
 	successFrame.Visible = true
@@ -194,11 +240,5 @@ buyButton.MouseButton1Click:Connect(function()
 end)
 
 okButton.MouseButton1Click:Connect(function()
-	okButton.BackgroundColor3 = DARK_BLUE
-	task.wait(0.15)
-	gui:Destroy()
-end)
-
-close.MouseButton1Click:Connect(function()
 	gui:Destroy()
 end)
