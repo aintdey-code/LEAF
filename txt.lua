@@ -27,7 +27,7 @@ local guiOpen        = false
 -- ============================================================
 local C_CARD       = Color3.fromRGB(55,  55,  70)
 local C_WHITE      = Color3.fromRGB(255, 255, 255)
-local C_ICON       = Color3.fromRGB(70,  70,  90)
+local C_ICON       = Color3.fromRGB(55,  55,  70)
 local C_BTN_DARK   = Color3.fromRGB(55,  65,  160)
 local C_BTN_LIGHT  = Color3.fromRGB(88,  101, 242)
 local C_BTN_PRESS  = Color3.fromRGB(38,  48,  130)
