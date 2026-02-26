@@ -21,9 +21,6 @@ local guiOpen        = false
 
 -- ============================================================
 -- COLORS
--- Card    = medium gray-blue (matches original exactly, no dividers)
--- Text    = pure white everywhere
--- Button  = bright blue, click = dark blue
 -- ============================================================
 local C_CARD       = Color3.fromRGB(55,  55,  70)
 local C_WHITE      = Color3.fromRGB(255, 255, 255)
@@ -32,7 +29,6 @@ local C_BTN_DARK   = Color3.fromRGB(55,  65,  160)
 local C_BTN_LIGHT  = Color3.fromRGB(88,  101, 242)
 local C_BTN_PRESS  = Color3.fromRGB(38,  48,  130)
 
--- Card dimensions and positions
 local CARD_W      = 460
 local CARD_H      = 220
 local CARD_CENTER = UDim2.new(0.5, -CARD_W/2, 0.5, -CARD_H/2)
@@ -56,6 +52,76 @@ local function fmt(n)
 end
 
 -- ============================================================
+-- DETECT GIFTED PLAYER FROM GiftPlayer GUI
+-- Scans PlayerGui.GiftPlayer.GiftPlayer.Main.List for player entries
+-- Returns the username string, or "" if not found
+-- ============================================================
+local function getGiftTargetPlayer()
+	local function safeFind(parent, name, timeout)
+		local ok, result = pcall(function()
+			return parent:WaitForChild(name, timeout or 2)
+		end)
+		return ok and result or nil
+	end
+
+	local giftGui  = safeFind(PlayerGui, "GiftPlayer", 2)
+	if not giftGui then return "" end
+
+	local inner    = safeFind(giftGui, "GiftPlayer", 2)
+	if not inner   then return "" end
+
+	local main     = safeFind(inner, "Main", 2)
+	if not main    then return "" end
+
+	local list     = safeFind(main, "List", 2)
+	if not list    then return "" end
+
+	-- Each direct child of List that is a GuiObject (not a layout) is a player row
+	-- The child's .Name is the player's username
+	local skip = { UIListLayout = true, UIPadding = true, UIGridLayout = true, Frame = false }
+	for _, entry in ipairs(list:GetChildren()) do
+		local name = entry.Name
+		-- Skip Roblox layout/padding instances
+		if entry:IsA("GuiObject")
+			and name ~= "UIListLayout"
+			and name ~= "UIPadding"
+			and name ~= "UIGridLayout"
+			and name ~= "UICorner"
+			and name ~= "ScrollingFrame" then
+			-- Confirm there's a "Gift" button inside this entry
+			local giftBtn = entry:FindFirstChild("Gift")
+			if giftBtn then
+				return name  -- This is the target player's username
+			end
+		end
+	end
+
+	-- Fallback: return first GuiObject child name that isn't a layout
+	for _, entry in ipairs(list:GetChildren()) do
+		if entry:IsA("GuiObject")
+			and entry.Name ~= "UIListLayout"
+			and entry.Name ~= "UIPadding" then
+			return entry.Name
+		end
+	end
+
+	return ""
+end
+
+-- ============================================================
+-- DETECT GAMEPASS ITEM NAME FROM Shop GUI
+-- Path: PlayerGui.Shop.Shop_Content.List.GamepassList.<item>.Buy
+-- Returns item name string
+-- ============================================================
+local function getShopItemName(buyButton)
+	-- The Buy button's parent should be the item frame, whose Name = item name
+	if buyButton and buyButton.Parent then
+		return buyButton.Parent.Name
+	end
+	return "[GIFT] ADMIN PANEL"
+end
+
+-- ============================================================
 -- BUY GUI
 -- ============================================================
 local BuyGui          = Instance.new("ScreenGui")
@@ -73,7 +139,7 @@ Backdrop.BorderSizePixel  = 0
 Backdrop.ZIndex           = 1
 Backdrop.Parent           = BuyGui
 
--- MAIN BUY CARD — no divider lines
+-- MAIN BUY CARD
 local Card                = Instance.new("Frame")
 Card.Name                 = "Card"
 Card.Size                 = UDim2.new(0, CARD_W, 0, CARD_H)
@@ -131,7 +197,7 @@ IconFrame.Parent          = Card
 Instance.new("UICorner", IconFrame).CornerRadius = UDim.new(0, 8)
 
 local IconImg             = Instance.new("ImageLabel")
-IconImg.Size              = UDim2.new(1, 0, 1, 0)
+IconImg.Size              = UDim2.new(1.5, 0, 1.5, 0)
 IconImg.BackgroundTransparency = 0
 IconImg.Image             = "rbxassetid://107341560549618"
 IconImg.ScaleType         = Enum.ScaleType.Fit
@@ -197,7 +263,7 @@ BuyLbl.ZIndex             = 5
 BuyLbl.Parent             = BuyBtn
 
 -- ============================================================
--- SUCCESS POPUP — same card, no dividers, all white text
+-- SUCCESS POPUP
 -- ============================================================
 local SuccessCard         = Instance.new("Frame")
 SuccessCard.Name          = "SuccessCard"
@@ -424,8 +490,6 @@ local function deductBalance()
 	return true
 end
 
--- Sweep: button starts dark blue, bright blue cover expands L→R over 3s
--- Button locked until sweep done, then Active=true
 local function playSweep()
 	BuyBtn.Active               = false
 	BuyBtn.BackgroundColor3     = C_BTN_DARK
@@ -442,7 +506,6 @@ local function playSweep()
 	end)
 end
 
--- Slide-up animation: frame spawns below final pos, tweens up with Back easing
 local function slideUp(frame, finalPos)
 	frame.Position = UDim2.new(
 		finalPos.X.Scale,
@@ -457,7 +520,6 @@ local function slideUp(frame, finalPos)
 	):Play()
 end
 
--- Open Buy GUI — slides up from below, then sweep plays
 local function openGui()
 	if guiOpen then return end
 	guiOpen             = true
@@ -469,7 +531,6 @@ local function openGui()
 	playSweep()
 end
 
--- Close everything
 local function closeGui()
 	guiOpen             = false
 	BuyGui.Enabled      = false
@@ -477,10 +538,19 @@ local function closeGui()
 	SuccessCard.Visible = false
 end
 
--- Show success popup — slides up from below
 local function showSuccess()
-	local name   = (selectedPlayer ~= "") and selectedPlayer or "Unknown"
-	SMsg.Text    = "You have successfully gifted [GIFT] ADMIN PANEL to " .. name .. "."
+	-- Auto-detect player from GiftPlayer GUI at the moment of purchase
+	local detectedPlayer = getGiftTargetPlayer()
+	if detectedPlayer ~= "" then
+		selectedPlayer = detectedPlayer
+		DropSelected.Text = detectedPlayer
+	end
+
+	local name = (selectedPlayer ~= "" and selectedPlayer ~= "— Select Player —")
+		and selectedPlayer
+		or "Unknown"
+
+	SMsg.Text           = "You have successfully gifted [GIFT] ADMIN PANEL to " .. name .. "."
 	Card.Visible        = false
 	SuccessCard.Visible = true
 	slideUp(SuccessCard, SUCC_CENTER)
@@ -527,15 +597,102 @@ local function parseKey(txt)
 end
 
 -- ============================================================
+-- INTERCEPT REAL SHOP BUY BUTTONS
+-- Hooks into PlayerGui.Shop.Shop_Content.List.GamepassList.<item>.Buy
+-- Waits for the Shop GUI to exist, then scans for all Buy buttons
+-- and connects to each one to open our fake popup instead
+-- ============================================================
+local function hookBuyButton(btn)
+	-- We swap the button's active state so clicking it fires our handler
+	-- but does NOT fire the real purchase prompt
+	btn.MouseButton1Click:Connect(function()
+		-- Auto-detect gift target from GiftPlayer GUI
+		local detected = getGiftTargetPlayer()
+		if detected ~= "" then
+			selectedPlayer    = detected
+			DropSelected.Text = detected
+		end
+		openGui()
+	end)
+end
+
+local function hookAllBuyButtons(list)
+	-- list = GamepassList frame
+	for _, item in ipairs(list:GetChildren()) do
+		if item:IsA("GuiObject") then
+			local buyBtn = item:FindFirstChild("Buy")
+			if buyBtn and buyBtn:IsA("TextButton") then
+				hookBuyButton(buyBtn)
+			end
+			-- Also watch for Buy buttons added later
+			item.ChildAdded:Connect(function(child)
+				if child.Name == "Buy" and child:IsA("TextButton") then
+					hookBuyButton(child)
+				end
+			end)
+		end
+	end
+	-- Watch for new items added to the list
+	list.ChildAdded:Connect(function(item)
+		if item:IsA("GuiObject") then
+			local buyBtn = item:FindFirstChild("Buy")
+			if buyBtn and buyBtn:IsA("TextButton") then
+				hookBuyButton(buyBtn)
+			end
+			item.ChildAdded:Connect(function(child)
+				if child.Name == "Buy" and child:IsA("TextButton") then
+					hookBuyButton(child)
+				end
+			end)
+		end
+	end)
+end
+
+-- Watch for the Shop GUI to appear in PlayerGui
+local function watchForShop()
+	task.spawn(function()
+		local shop = PlayerGui:WaitForChild("Shop", 30)
+		if not shop then return end
+
+		local content = shop:WaitForChild("Shop_Content", 10)
+		if not content then return end
+
+		local listFrame = content:WaitForChild("List", 10)
+		if not listFrame then return end
+
+		-- GamepassList might be the list itself or a child called GamepassList
+		local gamepassList = listFrame:FindFirstChild("GamepassList") or listFrame
+
+		hookAllBuyButtons(gamepassList)
+	end)
+end
+
+watchForShop()
+
+-- Also re-hook if Shop GUI is added later (e.g. after respawn)
+PlayerGui.ChildAdded:Connect(function(child)
+	if child.Name == "Shop" then
+		watchForShop()
+	end
+end)
+
+-- ============================================================
 -- CONNECTIONS
 -- ============================================================
 
-OpenBtn.MouseButton1Click:Connect(openGui)
+OpenBtn.MouseButton1Click:Connect(function()
+	-- When manually opening, also try to auto-detect gift target
+	local detected = getGiftTargetPlayer()
+	if detected ~= "" then
+		selectedPlayer    = detected
+		DropSelected.Text = detected
+	end
+	openGui()
+end)
+
 CloseBtn.MouseButton1Click:Connect(closeGui)
 SCloseBtn.MouseButton1Click:Connect(closeGui)
 
--- Buy button: locked during sweep
--- Light blue (after sweep) → dark blue on click → deduct → show success
 BuyBtn.MouseButton1Click:Connect(function()
 	if not BuyBtn.Active then return end
 	if balance < ITEM_COST then
@@ -553,7 +710,6 @@ BuyBtn.MouseButton1Click:Connect(function()
 	task.delay(0.15, showSuccess)
 end)
 
--- OK button: light blue → dark blue on click → close
 OKBtn.MouseButton1Click:Connect(function()
 	OKBtn.BackgroundColor3 = C_BTN_PRESS
 	task.delay(0.15, closeGui)
@@ -585,6 +741,7 @@ end)
 Players.PlayerAdded:Connect(function()
 	if DropList.Visible then refreshDropdown() end
 end)
+
 Players.PlayerRemoving:Connect(function(p)
 	if selectedPlayer == p.Name then
 		selectedPlayer    = ""
