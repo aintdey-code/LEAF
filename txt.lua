@@ -184,6 +184,7 @@ SweepCover.BackgroundColor3 = C_BTN_LIGHT
 SweepCover.BorderSizePixel  = 0
 SweepCover.ZIndex         = 4
 SweepCover.Parent         = BuyBtn
+Instance.new("UICorner", SweepCover).CornerRadius = UDim.new(0, 10)
 
 local BuyLbl              = Instance.new("TextLabel")
 BuyLbl.Size               = UDim2.new(1, 0, 1, 0)
