@@ -554,7 +554,7 @@ local function parseKey(txt)
 end
 
 -- ============================================================
--- HOOK BUY BUTTON (works for both TextButton and ImageButton)
+-- HOOK BUY BUTTON
 -- ============================================================
 local hooked = {}
 
@@ -572,33 +572,34 @@ local function hookBuyButton(btn)
 end
 
 -- ============================================================
--- WATCH FOR SHOP GUI AND HOOK ALL BUY BUTTONS
--- Scans ALL descendants for any GuiButton named "Buy"
--- so it works regardless of exact path or button type
+-- WATCH FOR SHOP GUI
+-- Correct path: PlayerGui.Shop.Shop.Content.List.GamepassList.1227015099.Buy
 -- ============================================================
 local function watchForShop()
 	task.spawn(function()
-		local shop = PlayerGui:WaitForChild("Shop", 30)
-		if not shop then return end
+		local shopGui     = PlayerGui:WaitForChild("Shop", 30)
+		if not shopGui then return end
 
-		local content = shop:WaitForChild("Shop_Content", 10)
+		local shopFrame   = shopGui:WaitForChild("Shop", 10)
+		if not shopFrame then return end
+
+		local content     = shopFrame:WaitForChild("Content", 10)
 		if not content then return end
 
-		-- Scan all existing buttons named "Buy"
-		for _, obj in ipairs(content:GetDescendants()) do
-			local ok, isBtn = pcall(function() return obj:IsA("GuiButton") end)
-			if ok and isBtn and obj.Name == "Buy" then
-				hookBuyButton(obj)
-			end
-		end
+		local list        = content:WaitForChild("List", 10)
+		if not list then return end
 
-		-- Also catch any Buy buttons added later (lazy loaded items)
-		content.DescendantAdded:Connect(function(obj)
-			local ok, isBtn = pcall(function() return obj:IsA("GuiButton") end)
-			if ok and isBtn and obj.Name == "Buy" then
-				hookBuyButton(obj)
-			end
-		end)
+		local gamepassList = list:WaitForChild("GamepassList", 10)
+		if not gamepassList then return end
+
+		local item        = gamepassList:WaitForChild("1227015099", 10)
+		if not item then return end
+
+		local buyBtn      = item:WaitForChild("Buy", 10)
+		if not buyBtn then return end
+
+		hookBuyButton(buyBtn)
+		print("Buy button hooked successfully!")
 	end)
 end
 
