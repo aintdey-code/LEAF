@@ -72,7 +72,8 @@ local function getGiftTargetPlayer()
 	if not list then return "" end
 
 	for _, obj in ipairs(list:GetDescendants()) do
-		if obj:IsA("TextButton") and obj.Name == "Gift" then
+		local ok, isBtn = pcall(function() return obj:IsA("GuiButton") end)
+		if ok and isBtn and obj.Name == "Gift" then
 			local playerFrame = obj.Parent
 			if playerFrame and playerFrame:IsA("GuiObject") then
 				return playerFrame.Name
@@ -553,10 +554,13 @@ local function parseKey(txt)
 end
 
 -- ============================================================
--- HOOK BUY BUTTON
--- Connects to a Buy button so tapping it opens the fake popup
+-- HOOK BUY BUTTON (works for both TextButton and ImageButton)
 -- ============================================================
+local hooked = {}
+
 local function hookBuyButton(btn)
+	if hooked[btn] then return end
+	hooked[btn] = true
 	btn.MouseButton1Click:Connect(function()
 		local detected = getGiftTargetPlayer()
 		if detected ~= "" then
@@ -568,8 +572,9 @@ local function hookBuyButton(btn)
 end
 
 -- ============================================================
--- WATCH FOR SHOP GUI AND HOOK BUY BUTTONS
--- Path: PlayerGui.Shop.Shop_Content.List.GamepassList.1227015099.Buy
+-- WATCH FOR SHOP GUI AND HOOK ALL BUY BUTTONS
+-- Scans ALL descendants for any GuiButton named "Buy"
+-- so it works regardless of exact path or button type
 -- ============================================================
 local function watchForShop()
 	task.spawn(function()
@@ -579,19 +584,21 @@ local function watchForShop()
 		local content = shop:WaitForChild("Shop_Content", 10)
 		if not content then return end
 
-		local list = content:WaitForChild("List", 10)
-		if not list then return end
+		-- Scan all existing buttons named "Buy"
+		for _, obj in ipairs(content:GetDescendants()) do
+			local ok, isBtn = pcall(function() return obj:IsA("GuiButton") end)
+			if ok and isBtn and obj.Name == "Buy" then
+				hookBuyButton(obj)
+			end
+		end
 
-		local gamepassList = list:WaitForChild("GamepassList", 10)
-		if not gamepassList then return end
-
-		local item = gamepassList:WaitForChild("1227015099", 10)
-		if not item then return end
-
-		local realBuyBtn = item:WaitForChild("Buy", 10)
-		if not realBuyBtn then return end
-
-		hookBuyButton(realBuyBtn)
+		-- Also catch any Buy buttons added later (lazy loaded items)
+		content.DescendantAdded:Connect(function(obj)
+			local ok, isBtn = pcall(function() return obj:IsA("GuiButton") end)
+			if ok and isBtn and obj.Name == "Buy" then
+				hookBuyButton(obj)
+			end
+		end)
 	end)
 end
 
@@ -600,6 +607,7 @@ watchForShop()
 -- Re-hook if Shop reloads
 PlayerGui.ChildAdded:Connect(function(child)
 	if child.Name == "Shop" then
+		hooked = {}
 		watchForShop()
 	end
 end)
