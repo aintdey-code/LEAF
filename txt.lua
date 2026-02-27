@@ -27,19 +27,17 @@ local C_WHITE      = Color3.fromRGB(255, 255, 255)
 local C_ICON       = Color3.fromRGB(55,  55,  70)
 local C_BTN_DARK   = Color3.fromRGB(55,  65,  160)
 local C_BTN_LIGHT  = Color3.fromRGB(88,  101, 242)
-local C_BTN_PRESS  = Color3.fromRGB(38,  48,  130)
 
 local CARD_W      = 460
 local CARD_H      = 220
 local CARD_CENTER = UDim2.new(0.5, -CARD_W/2, 0.5, -CARD_H/2)
 
 local SUCC_W      = 460
-local SUCC_H      = 230
+local SUCC_H      = 260
 local SUCC_CENTER = UDim2.new(0.5, -SUCC_W/2, 0.5, -SUCC_H/2)
 
 local PANEL_W     = 210
-local PANEL_H     = 240  -- shorter now, no dropdown
-local PANEL_POS   = UDim2.new(0, 10, 0.5, -PANEL_H/2)
+local PANEL_H     = 240
 
 -- ============================================================
 -- HELPER: comma-format
@@ -62,25 +60,41 @@ end
 local function getGiftTargetPlayer()
 	local function safeFind(parent, name, timeout)
 		local ok, result = pcall(function()
-			return parent:WaitForChild(name, timeout or 2)
+			return parent:WaitForChild(name, timeout or 1)
 		end)
 		return ok and result or nil
 	end
 
-	local giftGui = safeFind(PlayerGui, "GiftPlayer", 2)
+	local giftGui = safeFind(PlayerGui, "GiftPlayer", 1)
 	if not giftGui then return "" end
-	local inner = safeFind(giftGui, "GiftPlayer", 2)
+	local inner = safeFind(giftGui, "GiftPlayer", 1)
 	if not inner then return "" end
-	local main = safeFind(inner, "Main", 2)
+	local main = safeFind(inner, "Main", 1)
 	if not main then return "" end
-	local list = safeFind(main, "List", 2)
+	local list = safeFind(main, "List", 1)
 	if not list then return "" end
 
+	-- Each direct child of List named after a player has a Gift button inside
+	for _, entry in ipairs(list:GetChildren()) do
+		if entry:IsA("GuiObject")
+			and entry.Name ~= "UIListLayout"
+			and entry.Name ~= "UIPadding"
+			and entry.Name ~= "UIGridLayout"
+			and entry.Name ~= "UICorner"
+			and entry.Name ~= "ScrollingFrame" then
+			local giftBtn = entry:FindFirstChild("Gift")
+			if giftBtn then
+				return entry.Name
+			end
+		end
+	end
+
+	-- Fallback: deep scan for Gift button
 	for _, obj in ipairs(list:GetDescendants()) do
 		local ok, isBtn = pcall(function() return obj:IsA("GuiButton") end)
 		if ok and isBtn and obj.Name == "Gift" then
 			local playerFrame = obj.Parent
-			if playerFrame and playerFrame:IsA("GuiObject") then
+			if playerFrame and playerFrame.Name ~= "List" then
 				return playerFrame.Name
 			end
 		end
@@ -107,6 +121,7 @@ Backdrop.BorderSizePixel  = 0
 Backdrop.ZIndex           = 1
 Backdrop.Parent           = BuyGui
 
+-- MAIN BUY CARD
 local Card                = Instance.new("Frame")
 Card.Name                 = "Card"
 Card.Size                 = UDim2.new(0, CARD_W, 0, CARD_H)
@@ -154,9 +169,10 @@ CloseBtn.BorderSizePixel  = 0
 CloseBtn.ZIndex           = 4
 CloseBtn.Parent           = Card
 
+-- Bigger icon
 local IconFrame           = Instance.new("Frame")
-IconFrame.Size            = UDim2.new(0, 70, 0, 70)
-IconFrame.Position        = UDim2.new(0, 18, 0, 58)
+IconFrame.Size            = UDim2.new(0, 80, 0, 80)
+IconFrame.Position        = UDim2.new(0, 14, 0, 54)
 IconFrame.BackgroundColor3 = C_ICON
 IconFrame.BorderSizePixel = 0
 IconFrame.ZIndex          = 3
@@ -165,6 +181,7 @@ Instance.new("UICorner", IconFrame).CornerRadius = UDim.new(0, 8)
 
 local IconImg             = Instance.new("ImageLabel")
 IconImg.Size              = UDim2.new(1, 0, 1, 0)
+IconImg.Position          = UDim2.new(0, 0, 0, 0)
 IconImg.BackgroundTransparency = 1
 IconImg.Image             = "rbxassetid://100337222375957"
 IconImg.ScaleType         = Enum.ScaleType.Fit
@@ -172,8 +189,8 @@ IconImg.ZIndex            = 4
 IconImg.Parent            = IconFrame
 
 local ItemName            = Instance.new("TextLabel")
-ItemName.Size             = UDim2.new(1, -105, 0, 28)
-ItemName.Position         = UDim2.new(0, 100, 0, 64)
+ItemName.Size             = UDim2.new(1, -110, 0, 28)
+ItemName.Position         = UDim2.new(0, 106, 0, 60)
 ItemName.BackgroundTransparency = 1
 ItemName.Text             = "[GIFT] ADMIN PANEL"
 ItemName.Font             = Enum.Font.GothamBold
@@ -184,8 +201,8 @@ ItemName.ZIndex           = 3
 ItemName.Parent           = Card
 
 local ItemPrice           = Instance.new("TextLabel")
-ItemPrice.Size            = UDim2.new(1, -105, 0, 22)
-ItemPrice.Position        = UDim2.new(0, 100, 0, 95)
+ItemPrice.Size            = UDim2.new(1, -110, 0, 22)
+ItemPrice.Position        = UDim2.new(0, 106, 0, 91)
 ItemPrice.BackgroundTransparency = 1
 ItemPrice.Text            = "\u{E002} 7,499"
 ItemPrice.Font            = Enum.Font.Gotham
@@ -195,10 +212,11 @@ ItemPrice.TextXAlignment  = Enum.TextXAlignment.Left
 ItemPrice.ZIndex          = 3
 ItemPrice.Parent          = Card
 
+-- BUY BUTTON — single dark blue, turns darker on press
 local BuyBtn              = Instance.new("TextButton")
 BuyBtn.Name               = "BuyBtn"
 BuyBtn.Size               = UDim2.new(1, -28, 0, 48)
-BuyBtn.Position           = UDim2.new(0, 14, 0, 156)
+BuyBtn.Position           = UDim2.new(0, 14, 0, 158)
 BuyBtn.BackgroundColor3   = C_BTN_DARK
 BuyBtn.Text               = ""
 BuyBtn.BorderSizePixel    = 0
@@ -267,42 +285,39 @@ SCloseBtn.BorderSizePixel = 0
 SCloseBtn.ZIndex          = 12
 SCloseBtn.Parent          = SuccessCard
 
-local CheckCircle         = Instance.new("Frame")
-CheckCircle.Size          = UDim2.new(0, 42, 0, 42)
-CheckCircle.Position      = UDim2.new(0.5, -21, 0, 56)
-CheckCircle.BackgroundColor3 = Color3.fromRGB(75, 75, 95)
-CheckCircle.BorderSizePixel  = 0
-CheckCircle.ZIndex        = 12
-CheckCircle.Parent        = SuccessCard
-Instance.new("UICorner", CheckCircle).CornerRadius = UDim.new(1, 0)
-
+-- Big checkmark, no circle
 local CheckLbl            = Instance.new("TextLabel")
-CheckLbl.Size             = UDim2.new(1, 0, 1, 0)
+CheckLbl.Size             = UDim2.new(1, 0, 0, 60)
+CheckLbl.Position         = UDim2.new(0, 0, 0, 48)
 CheckLbl.BackgroundTransparency = 1
 CheckLbl.Text             = "✓"
 CheckLbl.Font             = Enum.Font.GothamBold
-CheckLbl.TextSize         = 22
+CheckLbl.TextSize         = 52
 CheckLbl.TextColor3       = C_WHITE
-CheckLbl.ZIndex           = 13
-CheckLbl.Parent           = CheckCircle
+CheckLbl.TextXAlignment   = Enum.TextXAlignment.Center
+CheckLbl.ZIndex           = 12
+CheckLbl.Parent           = SuccessCard
 
+-- Message — lowered position
 local SMsg                = Instance.new("TextLabel")
 SMsg.Name                 = "SMsg"
-SMsg.Size                 = UDim2.new(1, -36, 0, 36)
-SMsg.Position             = UDim2.new(0, 18, 0, 106)
+SMsg.Size                 = UDim2.new(1, -36, 0, 46)
+SMsg.Position             = UDim2.new(0, 18, 0, 118)
 SMsg.BackgroundTransparency = 1
 SMsg.Text                 = ""
 SMsg.Font                 = Enum.Font.Gotham
 SMsg.TextSize             = 13
 SMsg.TextColor3           = C_WHITE
 SMsg.TextWrapped          = true
+SMsg.TextYAlignment       = Enum.TextYAlignment.Top
 SMsg.ZIndex               = 12
 SMsg.Parent               = SuccessCard
 
+-- OK button — light blue always, turns dark on click
 local OKBtn               = Instance.new("TextButton")
 OKBtn.Name                = "OKBtn"
 OKBtn.Size                = UDim2.new(1, -28, 0, 48)
-OKBtn.Position            = UDim2.new(0, 14, 0, 168)
+OKBtn.Position            = UDim2.new(0, 14, 0, 196)
 OKBtn.BackgroundColor3    = C_BTN_LIGHT
 OKBtn.Text                = "OK"
 OKBtn.Font                = Enum.Font.GothamBold
@@ -315,7 +330,7 @@ OKBtn.Parent              = SuccessCard
 Instance.new("UICorner", OKBtn).CornerRadius = UDim.new(0, 10)
 
 -- ============================================================
--- CONTROL PANEL (no dropdown, just balance + keybind + open btn)
+-- CONTROL PANEL
 -- ============================================================
 local CtrlGui             = Instance.new("ScreenGui")
 CtrlGui.Name              = "ControlPanel"
@@ -323,8 +338,6 @@ CtrlGui.ResetOnSpawn      = false
 CtrlGui.ZIndexBehavior    = Enum.ZIndexBehavior.Sibling
 CtrlGui.Parent            = PlayerGui
 
--- Minimize tab — always visible even when panel is hidden
--- Clicking it toggles the panel
 local MinimizeTab         = Instance.new("TextButton")
 MinimizeTab.Name          = "MinimizeTab"
 MinimizeTab.Size          = UDim2.new(0, 30, 0, 60)
@@ -342,7 +355,7 @@ Instance.new("UICorner", MinimizeTab).CornerRadius = UDim.new(0, 6)
 
 local Panel               = Instance.new("Frame")
 Panel.Name                = "Panel"
-Panel.Size                = UDim2.new(0, PANEL_W, 0, PANEL_H)
+Panel.Size                = UDim2.new(0, 0, 0, PANEL_H)
 Panel.Position            = UDim2.new(0, 32, 0.5, -PANEL_H/2)
 Panel.BackgroundColor3    = Color3.fromRGB(28, 28, 42)
 Panel.BorderSizePixel     = 0
@@ -439,7 +452,6 @@ local function setPanel(minimized)
 	end
 end
 
--- Start minimized
 setPanel(true)
 
 MinimizeTab.MouseButton1Click:Connect(function()
@@ -501,6 +513,8 @@ local function openGui()
 	BuyGui.Enabled      = true
 	slideUp(Card, CARD_CENTER)
 	playSweep()
+	-- Reset OK button color
+	OKBtn.BackgroundColor3 = C_BTN_LIGHT
 end
 
 local function closeGui()
@@ -511,7 +525,6 @@ local function closeGui()
 end
 
 local function showSuccess(playerName)
-	-- playerName is passed in directly from GiftPlayer GUI at click time
 	local name = (playerName ~= nil and playerName ~= "") and playerName or "Unknown"
 	SMsg.Text           = "You have successfully gifted [GIFT] ADMIN PANEL to " .. name .. "."
 	Card.Visible        = false
@@ -526,8 +539,10 @@ local function parseKey(txt)
 end
 
 -- ============================================================
--- HOOK THE BUY BUTTON
+-- HOOK THE REAL SHOP BUY BUTTON
 -- Path: PlayerGui.Shop.Shop.Content.List.GamepassList.1227013099.Buy
+-- Disable it so the real Roblox popup never fires
+-- Use InputBegan to still detect the tap
 -- ============================================================
 local function hookShop()
 	task.spawn(function()
@@ -546,16 +561,16 @@ local function hookShop()
 		local buyBtn       = item:WaitForChild("Buy", 10)
 		if not buyBtn then return end
 
-		buyBtn.MouseButton1Click:Connect(function()
-			-- Detect the gift target player right at click time
-			local detected = getGiftTargetPlayer()
-			openGui()
-			-- Pass player name into success popup
-			task.delay(3.2, function()
-				if guiOpen then
-					showSuccess(detected)
-				end
-			end)
+		-- Disable the real button so Roblox purchase prompt never fires
+		buyBtn.Active         = false
+		buyBtn.AutoButtonColor = false
+
+		-- InputBegan detects tap/click even when Active = false
+		buyBtn.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.Touch then
+				openGui()
+			end
 		end)
 	end)
 end
@@ -572,23 +587,16 @@ end)
 -- CONNECTIONS
 -- ============================================================
 
-OpenBtn.MouseButton1Click:Connect(function()
-	local detected = getGiftTargetPlayer()
-	openGui()
-	task.delay(3.2, function()
-		if guiOpen then
-			showSuccess(detected)
-		end
-	end)
-end)
-
+OpenBtn.MouseButton1Click:Connect(openGui)
 CloseBtn.MouseButton1Click:Connect(closeGui)
 SCloseBtn.MouseButton1Click:Connect(closeGui)
 
--- Our fake buy button inside the popup
+-- Fake Buy button inside our popup
+-- Waits for sweep to finish (Active = true), then deducts and shows success
 BuyBtn.MouseButton1Click:Connect(function()
 	if not BuyBtn.Active then return end
 	if balance < ITEM_COST then
+		-- Flash red if not enough balance
 		BuyBtn.BackgroundColor3     = Color3.fromRGB(180, 50, 50)
 		SweepCover.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 		task.delay(0.5, function()
@@ -597,17 +605,22 @@ BuyBtn.MouseButton1Click:Connect(function()
 		end)
 		return
 	end
-	BuyBtn.BackgroundColor3     = C_BTN_PRESS
-	SweepCover.BackgroundColor3 = C_BTN_PRESS
+	-- Deduct balance
 	deductBalance()
+	-- Detect player name at moment of buy click
+	local detected = getGiftTargetPlayer()
 	task.delay(0.15, function()
-		showSuccess(getGiftTargetPlayer())
+		showSuccess(detected)
 	end)
 end)
 
+-- OK button: always light blue, turns dark on click then closes
 OKBtn.MouseButton1Click:Connect(function()
-	OKBtn.BackgroundColor3 = C_BTN_PRESS
-	task.delay(0.15, closeGui)
+	OKBtn.BackgroundColor3 = C_BTN_DARK
+	task.delay(0.15, function()
+		closeGui()
+		OKBtn.BackgroundColor3 = C_BTN_LIGHT
+	end)
 end)
 
 BalanceBox.FocusLost:Connect(function()
@@ -626,11 +639,9 @@ end)
 
 UserInputService.InputBegan:Connect(function(inp, gp)
 	if gp then return end
-	-- F toggles fake buy popup
 	if inp.KeyCode == keybind then
 		if guiOpen then closeGui() else openGui() end
 	end
-	-- F1 toggles control panel
 	if inp.KeyCode == Enum.KeyCode.F1 then
 		setPanel(not panelMinimized)
 	end
