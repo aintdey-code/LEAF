@@ -89,38 +89,6 @@ local function getGiftTargetPlayer()
 	return ""
 end
 
-	-- Each direct child of List that is a GuiObject (not a layout) is a player row
-	-- The child's .Name is the player's username
-	local skip = { UIListLayout = true, UIPadding = true, UIGridLayout = true, Frame = false }
-	for _, entry in ipairs(list:GetChildren()) do
-		local name = entry.Name
-		-- Skip Roblox layout/padding instances
-		if entry:IsA("GuiObject")
-			and name ~= "UIListLayout"
-			and name ~= "UIPadding"
-			and name ~= "UIGridLayout"
-			and name ~= "UICorner"
-			and name ~= "ScrollingFrame" then
-			-- Confirm there's a "Gift" button inside this entry
-			local giftBtn = entry:FindFirstChild("Gift")
-			if giftBtn then
-				return name  -- This is the target player's username
-			end
-		end
-	end
-
-	-- Fallback: return first GuiObject child name that isn't a layout
-	for _, entry in ipairs(list:GetChildren()) do
-		if entry:IsA("GuiObject")
-			and entry.Name ~= "UIListLayout"
-			and entry.Name ~= "UIPadding" then
-			return entry.Name
-		end
-	end
-
-	return ""
-end
-
 -- ============================================================
 -- DETECT GAMEPASS ITEM NAME FROM Shop GUI
 -- Path: PlayerGui.Shop.Shop_Content.List.GamepassList.<item>.Buy
