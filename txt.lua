@@ -155,7 +155,7 @@ CloseBtn.ZIndex           = 4
 CloseBtn.Parent           = Card
 
 local IconFrame           = Instance.new("Frame")
-IconFrame.Size            = UDim2.new(0, 68, 0, 68)
+IconFrame.Size            = UDim2.new(0, 70, 0, 70)
 IconFrame.Position        = UDim2.new(0, 18, 0, 58)
 IconFrame.BackgroundColor3 = C_ICON
 IconFrame.BorderSizePixel = 0
@@ -165,7 +165,7 @@ Instance.new("UICorner", IconFrame).CornerRadius = UDim.new(0, 8)
 
 local IconImg             = Instance.new("ImageLabel")
 IconImg.Size              = UDim2.new(1, 0, 1, 0)
-IconImg.BackgroundTransparency = 0
+IconImg.BackgroundTransparency = 1
 IconImg.Image             = "rbxassetid://100337222375957"
 IconImg.ScaleType         = Enum.ScaleType.Fit
 IconImg.ZIndex            = 4
