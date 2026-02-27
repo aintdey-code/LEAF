@@ -656,8 +656,8 @@ end
 gamepass.DescendantAdded:Connect(function(obj)
 	if obj:IsA("TextButton") and obj.Name == "Buy" then
 		hookBuyButton(obj)
-	end)
-end
+	end
+end)
 
 watchForShop()
 
