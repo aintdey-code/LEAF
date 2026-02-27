@@ -15,9 +15,9 @@ local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
 -- ============================================================
 local balance        = 66245
 local ITEM_COST      = 7499
-local selectedPlayer = ""
 local keybind        = Enum.KeyCode.F
 local guiOpen        = false
+local panelMinimized = false
 
 -- ============================================================
 -- COLORS
@@ -37,6 +37,10 @@ local SUCC_W      = 460
 local SUCC_H      = 230
 local SUCC_CENTER = UDim2.new(0.5, -SUCC_W/2, 0.5, -SUCC_H/2)
 
+local PANEL_W     = 210
+local PANEL_H     = 240  -- shorter now, no dropdown
+local PANEL_POS   = UDim2.new(0, 10, 0.5, -PANEL_H/2)
+
 -- ============================================================
 -- HELPER: comma-format
 -- ============================================================
@@ -53,6 +57,7 @@ end
 
 -- ============================================================
 -- DETECT GIFTED PLAYER FROM GiftPlayer GUI
+-- Path: PlayerGui.GiftPlayer.GiftPlayer.Main.List.<PlayerName>.Gift
 -- ============================================================
 local function getGiftTargetPlayer()
 	local function safeFind(parent, name, timeout)
@@ -159,7 +164,7 @@ IconFrame.Parent          = Card
 Instance.new("UICorner", IconFrame).CornerRadius = UDim.new(0, 8)
 
 local IconImg             = Instance.new("ImageLabel")
-IconImg.Size              = UDim2.new(1.2, 0, 1.2, 0)
+IconImg.Size              = UDim2.new(1, 0, 1, 0)
 IconImg.BackgroundTransparency = 0
 IconImg.Image             = "rbxassetid://100337222375957"
 IconImg.ScaleType         = Enum.ScaleType.Fit
@@ -310,7 +315,7 @@ OKBtn.Parent              = SuccessCard
 Instance.new("UICorner", OKBtn).CornerRadius = UDim.new(0, 10)
 
 -- ============================================================
--- CONTROL PANEL
+-- CONTROL PANEL (no dropdown, just balance + keybind + open btn)
 -- ============================================================
 local CtrlGui             = Instance.new("ScreenGui")
 CtrlGui.Name              = "ControlPanel"
@@ -318,13 +323,31 @@ CtrlGui.ResetOnSpawn      = false
 CtrlGui.ZIndexBehavior    = Enum.ZIndexBehavior.Sibling
 CtrlGui.Parent            = PlayerGui
 
+-- Minimize tab — always visible even when panel is hidden
+-- Clicking it toggles the panel
+local MinimizeTab         = Instance.new("TextButton")
+MinimizeTab.Name          = "MinimizeTab"
+MinimizeTab.Size          = UDim2.new(0, 30, 0, 60)
+MinimizeTab.Position      = UDim2.new(0, 0, 0.5, -30)
+MinimizeTab.BackgroundColor3 = Color3.fromRGB(45, 45, 68)
+MinimizeTab.Text          = ">"
+MinimizeTab.Font          = Enum.Font.GothamBold
+MinimizeTab.TextSize      = 16
+MinimizeTab.TextColor3    = C_WHITE
+MinimizeTab.BorderSizePixel = 0
+MinimizeTab.AutoButtonColor = false
+MinimizeTab.ZIndex        = 25
+MinimizeTab.Parent        = CtrlGui
+Instance.new("UICorner", MinimizeTab).CornerRadius = UDim.new(0, 6)
+
 local Panel               = Instance.new("Frame")
 Panel.Name                = "Panel"
-Panel.Size                = UDim2.new(0, 210, 0, 345)
-Panel.Position            = UDim2.new(0, 10, 0.5, -172)
+Panel.Size                = UDim2.new(0, PANEL_W, 0, PANEL_H)
+Panel.Position            = UDim2.new(0, 32, 0.5, -PANEL_H/2)
 Panel.BackgroundColor3    = Color3.fromRGB(28, 28, 42)
 Panel.BorderSizePixel     = 0
 Panel.ZIndex              = 20
+Panel.ClipsDescendants    = true
 Panel.Parent              = CtrlGui
 Instance.new("UICorner", Panel).CornerRadius = UDim.new(0, 10)
 
@@ -392,48 +415,36 @@ OpenBtn.ZIndex            = 22
 OpenBtn.Parent            = Panel
 Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 7)
 
-local DropLbl             = Instance.new("TextLabel")
-DropLbl.Size              = UDim2.new(1, -16, 0, 16)
-DropLbl.Position          = UDim2.new(0, 8, 0, 208)
-DropLbl.BackgroundTransparency = 1
-DropLbl.Text              = "Gift to Player"
-DropLbl.Font              = Enum.Font.Gotham
-DropLbl.TextSize          = 11
-DropLbl.TextColor3        = Color3.fromRGB(175, 175, 200)
-DropLbl.TextXAlignment    = Enum.TextXAlignment.Left
-DropLbl.ZIndex            = 22
-DropLbl.Parent            = Panel
+-- ============================================================
+-- MINIMIZE / EXPAND PANEL
+-- ============================================================
+local function setPanel(minimized)
+	panelMinimized = minimized
+	if minimized then
+		TweenService:Create(Panel, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
+			Size = UDim2.new(0, 0, 0, PANEL_H)
+		}):Play()
+		MinimizeTab.Text = ">"
+		TweenService:Create(MinimizeTab, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
+			Position = UDim2.new(0, 0, 0.5, -30)
+		}):Play()
+	else
+		TweenService:Create(Panel, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
+			Size = UDim2.new(0, PANEL_W, 0, PANEL_H)
+		}):Play()
+		MinimizeTab.Text = "<"
+		TweenService:Create(MinimizeTab, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
+			Position = UDim2.new(0, PANEL_W + 32, 0.5, -30)
+		}):Play()
+	end
+end
 
-local DropSelected        = Instance.new("TextButton")
-DropSelected.Name         = "DropSelected"
-DropSelected.Size         = UDim2.new(1, -16, 0, 28)
-DropSelected.Position     = UDim2.new(0, 8, 0, 225)
-DropSelected.BackgroundColor3 = Color3.fromRGB(42, 42, 62)
-DropSelected.Text         = "— Select Player —"
-DropSelected.Font         = Enum.Font.Gotham
-DropSelected.TextSize     = 12
-DropSelected.TextColor3   = C_WHITE
-DropSelected.BorderSizePixel = 0
-DropSelected.ZIndex       = 23
-DropSelected.Parent       = Panel
-Instance.new("UICorner", DropSelected).CornerRadius = UDim.new(0, 5)
+-- Start minimized
+setPanel(true)
 
-local DropList            = Instance.new("Frame")
-DropList.Name             = "DropList"
-DropList.Size             = UDim2.new(1, -16, 0, 0)
-DropList.Position         = UDim2.new(0, 8, 0, 254)
-DropList.BackgroundColor3 = Color3.fromRGB(50, 50, 75)
-DropList.BorderSizePixel  = 0
-DropList.ClipsDescendants = true
-DropList.Visible          = false
-DropList.ZIndex           = 30
-DropList.Parent           = Panel
-Instance.new("UICorner", DropList).CornerRadius = UDim.new(0, 5)
-
-local DLayout             = Instance.new("UIListLayout")
-DLayout.SortOrder         = Enum.SortOrder.LayoutOrder
-DLayout.Padding           = UDim.new(0, 1)
-DLayout.Parent            = DropList
+MinimizeTab.MouseButton1Click:Connect(function()
+	setPanel(not panelMinimized)
+end)
 
 -- ============================================================
 -- CORE FUNCTIONS
@@ -499,52 +510,13 @@ local function closeGui()
 	SuccessCard.Visible = false
 end
 
-local function showSuccess()
-	local detectedPlayer = getGiftTargetPlayer()
-	if detectedPlayer ~= "" then
-		selectedPlayer    = detectedPlayer
-		DropSelected.Text = detectedPlayer
-	end
-	local name = (selectedPlayer ~= "" and selectedPlayer ~= "— Select Player —")
-		and selectedPlayer or "Unknown"
+local function showSuccess(playerName)
+	-- playerName is passed in directly from GiftPlayer GUI at click time
+	local name = (playerName ~= nil and playerName ~= "") and playerName or "Unknown"
 	SMsg.Text           = "You have successfully gifted [GIFT] ADMIN PANEL to " .. name .. "."
 	Card.Visible        = false
 	SuccessCard.Visible = true
 	slideUp(SuccessCard, SUCC_CENTER)
-end
-
-local function refreshDropdown()
-	for _, c in ipairs(DropList:GetChildren()) do
-		if c:IsA("TextButton") then c:Destroy() end
-	end
-	local plist   = Players:GetPlayers()
-	DropList.Size = UDim2.new(1, -16, 0, math.min(#plist * 28, 112))
-	for i, p in ipairs(plist) do
-		local btn             = Instance.new("TextButton")
-		btn.Size              = UDim2.new(1, 0, 0, 28)
-		btn.BackgroundTransparency = 1
-		btn.Text              = p.Name
-		btn.Font              = Enum.Font.Gotham
-		btn.TextSize          = 12
-		btn.TextColor3        = C_WHITE
-		btn.LayoutOrder       = i
-		btn.ZIndex            = 32
-		btn.Parent            = DropList
-		btn.MouseButton1Click:Connect(function()
-			selectedPlayer    = p.Name
-			DropSelected.Text = p.Name
-			DropList.Visible  = false
-		end)
-	end
-end
-
-local function toggleDrop()
-	if DropList.Visible then
-		DropList.Visible = false
-	else
-		refreshDropdown()
-		DropList.Visible = true
-	end
 end
 
 local function parseKey(txt)
@@ -555,42 +527,35 @@ end
 
 -- ============================================================
 -- HOOK THE BUY BUTTON
--- Correct path: PlayerGui.Shop.Shop.Content.List.GamepassList.1227013099.Buy
--- Buy is an ImageButton
+-- Path: PlayerGui.Shop.Shop.Content.List.GamepassList.1227013099.Buy
 -- ============================================================
 local function hookShop()
 	task.spawn(function()
 		local shopGui      = PlayerGui:WaitForChild("Shop", 30)
-		if not shopGui then print("Shop GUI not found") return end
-
+		if not shopGui then return end
 		local shopFrame    = shopGui:WaitForChild("Shop", 10)
-		if not shopFrame then print("Shop frame not found") return end
-
+		if not shopFrame then return end
 		local content      = shopFrame:WaitForChild("Content", 10)
-		if not content then print("Content not found") return end
-
+		if not content then return end
 		local list         = content:WaitForChild("List", 10)
-		if not list then print("List not found") return end
-
+		if not list then return end
 		local gamepassList = list:WaitForChild("GamepassList", 10)
-		if not gamepassList then print("GamepassList not found") return end
-
+		if not gamepassList then return end
 		local item         = gamepassList:WaitForChild("1227013099", 10)
-		if not item then print("Item 1227013099 not found") return end
-
+		if not item then return end
 		local buyBtn       = item:WaitForChild("Buy", 10)
-		if not buyBtn then print("Buy button not found") return end
-
-		print("SUCCESS: Buy button hooked! ClassName:", buyBtn.ClassName)
+		if not buyBtn then return end
 
 		buyBtn.MouseButton1Click:Connect(function()
-			print("Buy button clicked!")
+			-- Detect the gift target player right at click time
 			local detected = getGiftTargetPlayer()
-			if detected ~= "" then
-				selectedPlayer    = detected
-				DropSelected.Text = detected
-			end
 			openGui()
+			-- Pass player name into success popup
+			task.delay(3.2, function()
+				if guiOpen then
+					showSuccess(detected)
+				end
+			end)
 		end)
 	end)
 end
@@ -609,16 +574,18 @@ end)
 
 OpenBtn.MouseButton1Click:Connect(function()
 	local detected = getGiftTargetPlayer()
-	if detected ~= "" then
-		selectedPlayer    = detected
-		DropSelected.Text = detected
-	end
 	openGui()
+	task.delay(3.2, function()
+		if guiOpen then
+			showSuccess(detected)
+		end
+	end)
 end)
 
 CloseBtn.MouseButton1Click:Connect(closeGui)
 SCloseBtn.MouseButton1Click:Connect(closeGui)
 
+-- Our fake buy button inside the popup
 BuyBtn.MouseButton1Click:Connect(function()
 	if not BuyBtn.Active then return end
 	if balance < ITEM_COST then
@@ -633,7 +600,9 @@ BuyBtn.MouseButton1Click:Connect(function()
 	BuyBtn.BackgroundColor3     = C_BTN_PRESS
 	SweepCover.BackgroundColor3 = C_BTN_PRESS
 	deductBalance()
-	task.delay(0.15, showSuccess)
+	task.delay(0.15, function()
+		showSuccess(getGiftTargetPlayer())
+	end)
 end)
 
 OKBtn.MouseButton1Click:Connect(function()
@@ -655,25 +624,16 @@ KeybindBox.FocusLost:Connect(function()
 	parseKey(KeybindBox.Text)
 end)
 
-DropSelected.MouseButton1Click:Connect(toggleDrop)
-
 UserInputService.InputBegan:Connect(function(inp, gp)
 	if gp then return end
+	-- F toggles fake buy popup
 	if inp.KeyCode == keybind then
 		if guiOpen then closeGui() else openGui() end
 	end
-end)
-
-Players.PlayerAdded:Connect(function()
-	if DropList.Visible then refreshDropdown() end
-end)
-
-Players.PlayerRemoving:Connect(function(p)
-	if selectedPlayer == p.Name then
-		selectedPlayer    = ""
-		DropSelected.Text = "— Select Player —"
+	-- F1 toggles control panel
+	if inp.KeyCode == Enum.KeyCode.F1 then
+		setPanel(not panelMinimized)
 	end
-	if DropList.Visible then refreshDropdown() end
 end)
 
 refreshBalance()
