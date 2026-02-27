@@ -82,12 +82,14 @@ local function getGiftTargetPlayer()
 
 	-- Only pick visible, non-template direct children that have a Gift button
 	for _, entry in ipairs(ls:GetChildren()) do
-		if entry:IsA("GuiObject")
-			and not SKIP[entry.Name]
-			and entry.Visible ~= false then
-			local giftBtn = entry:FindFirstChild("Gift")
-			if giftBtn then
-				return entry.Name
+		local ok, isGui = pcall(function() return entry:IsA("GuiObject") end)
+		if ok and isGui and not SKIP[entry.Name] then
+			local visOk, vis = pcall(function() return entry.Visible end)
+			if visOk and vis ~= false then
+				local giftBtn = entry:FindFirstChild("Gift")
+				if giftBtn then
+					return entry.Name
+				end
 			end
 		end
 	end
