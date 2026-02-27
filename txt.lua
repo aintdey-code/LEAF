@@ -38,7 +38,7 @@ local SUCC_H      = 230
 local SUCC_CENTER = UDim2.new(0.5, -SUCC_W/2, 0.5, -SUCC_H/2)
 
 -- ============================================================
--- HELPER: comma-format  66245 → "66,245"
+-- HELPER: comma-format
 -- ============================================================
 local function fmt(n)
 	local s = tostring(math.floor(n))
@@ -53,8 +53,6 @@ end
 
 -- ============================================================
 -- DETECT GIFTED PLAYER FROM GiftPlayer GUI
--- Scans PlayerGui.GiftPlayer.GiftPlayer.Main.List for player entries
--- Returns the username string, or "" if not found
 -- ============================================================
 local function getGiftTargetPlayer()
 	local function safeFind(parent, name, timeout)
@@ -64,19 +62,15 @@ local function getGiftTargetPlayer()
 		return ok and result or nil
 	end
 
-	local giftGui  = safeFind(PlayerGui, "GiftPlayer", 2)
+	local giftGui = safeFind(PlayerGui, "GiftPlayer", 2)
 	if not giftGui then return "" end
-
-	local inner    = safeFind(giftGui, "GiftPlayer", 2)
+	local inner = safeFind(giftGui, "GiftPlayer", 2)
 	if not inner then return "" end
-
-	local main     = safeFind(inner, "Main", 2)
+	local main = safeFind(inner, "Main", 2)
 	if not main then return "" end
-
-	local list     = safeFind(main, "List", 2)
+	local list = safeFind(main, "List", 2)
 	if not list then return "" end
 
-	-- Deep scan for Gift button
 	for _, obj in ipairs(list:GetDescendants()) do
 		if obj:IsA("TextButton") and obj.Name == "Gift" then
 			local playerFrame = obj.Parent
@@ -87,19 +81,6 @@ local function getGiftTargetPlayer()
 	end
 
 	return ""
-end
-
--- ============================================================
--- DETECT GAMEPASS ITEM NAME FROM Shop GUI
--- Path: PlayerGui.Shop.Shop_Content.List.GamepassList.<item>.Buy
--- Returns item name string
--- ============================================================
-local function getShopItemName(buyButton)
-	-- The Buy button's parent should be the item frame, whose Name = item name
-	if buyButton and buyButton.Parent then
-		return buyButton.Parent.Name
-	end
-	return "[GIFT] ADMIN PANEL"
 end
 
 -- ============================================================
@@ -120,7 +101,6 @@ Backdrop.BorderSizePixel  = 0
 Backdrop.ZIndex           = 1
 Backdrop.Parent           = BuyGui
 
--- MAIN BUY CARD
 local Card                = Instance.new("Frame")
 Card.Name                 = "Card"
 Card.Size                 = UDim2.new(0, CARD_W, 0, CARD_H)
@@ -209,7 +189,6 @@ ItemPrice.TextXAlignment  = Enum.TextXAlignment.Left
 ItemPrice.ZIndex          = 3
 ItemPrice.Parent          = Card
 
--- BUY BUTTON
 local BuyBtn              = Instance.new("TextButton")
 BuyBtn.Name               = "BuyBtn"
 BuyBtn.Size               = UDim2.new(1, -28, 0, 48)
@@ -394,8 +373,8 @@ local function makeBox(yPos, labelText, defaultText)
 	return box
 end
 
-local BalanceBox  = makeBox(46,  "Balance",          tostring(balance))
-local KeybindBox  = makeBox(104, "Keybind (e.g. F)", "F")
+local BalanceBox = makeBox(46,  "Balance",          tostring(balance))
+local KeybindBox = makeBox(104, "Keybind (e.g. F)", "F")
 
 local OpenBtn             = Instance.new("TextButton")
 OpenBtn.Name              = "OpenBtn"
@@ -456,7 +435,7 @@ DLayout.Padding           = UDim.new(0, 1)
 DLayout.Parent            = DropList
 
 -- ============================================================
--- FUNCTIONS
+-- CORE FUNCTIONS
 -- ============================================================
 
 local function refreshBalance()
@@ -520,17 +499,13 @@ local function closeGui()
 end
 
 local function showSuccess()
-	-- Auto-detect player from GiftPlayer GUI at the moment of purchase
 	local detectedPlayer = getGiftTargetPlayer()
 	if detectedPlayer ~= "" then
-		selectedPlayer = detectedPlayer
+		selectedPlayer    = detectedPlayer
 		DropSelected.Text = detectedPlayer
 	end
-
 	local name = (selectedPlayer ~= "" and selectedPlayer ~= "— Select Player —")
-		and selectedPlayer
-		or "Unknown"
-
+		and selectedPlayer or "Unknown"
 	SMsg.Text           = "You have successfully gifted [GIFT] ADMIN PANEL to " .. name .. "."
 	Card.Visible        = false
 	SuccessCard.Visible = true
@@ -578,16 +553,11 @@ local function parseKey(txt)
 end
 
 -- ============================================================
--- INTERCEPT REAL SHOP BUY BUTTONS
--- Hooks into PlayerGui.Shop.Shop_Content.List.GamepassList.<item>.Buy
--- Waits for the Shop GUI to exist, then scans for all Buy buttons
--- and connects to each one to open our fake popup instead
+-- HOOK BUY BUTTON
+-- Connects to a Buy button so tapping it opens the fake popup
 -- ============================================================
 local function hookBuyButton(btn)
-	-- We swap the button's active state so clicking it fires our handler
-	-- but does NOT fire the real purchase prompt
 	btn.MouseButton1Click:Connect(function()
-		-- Auto-detect gift target from GiftPlayer GUI
 		local detected = getGiftTargetPlayer()
 		if detected ~= "" then
 			selectedPlayer    = detected
@@ -597,39 +567,10 @@ local function hookBuyButton(btn)
 	end)
 end
 
-local function hookAllBuyButtons(list)
-	-- list = GamepassList frame
-	for _, item in ipairs(list:GetChildren()) do
-		if item:IsA("GuiObject") then
-			local buyBtn = item:FindFirstChild("Buy")
-			if buyBtn and buyBtn:IsA("TextButton") then
-				hookBuyButton(buyBtn)
-			end
-			-- Also watch for Buy buttons added later
-			item.ChildAdded:Connect(function(child)
-				if child.Name == "Buy" and child:IsA("TextButton") then
-					hookBuyButton(child)
-				end
-			end)
-		end
-	end
-	-- Watch for new items added to the list
-	list.ChildAdded:Connect(function(item)
-		if item:IsA("GuiObject") then
-			local buyBtn = item:FindFirstChild("Buy")
-			if buyBtn and buyBtn:IsA("TextButton") then
-				hookBuyButton(buyBtn)
-			end
-			item.ChildAdded:Connect(function(child)
-				if child.Name == "Buy" and child:IsA("TextButton") then
-					hookBuyButton(child)
-				end
-			end)
-		end
-	end)
-end
-
--- Watch for the Shop GUI to appear in PlayerGui
+-- ============================================================
+-- WATCH FOR SHOP GUI AND HOOK BUY BUTTONS
+-- Path: PlayerGui.Shop.Shop_Content.List.GamepassList.1227015099.Buy
+-- ============================================================
 local function watchForShop()
 	task.spawn(function()
 		local shop = PlayerGui:WaitForChild("Shop", 30)
@@ -638,30 +579,25 @@ local function watchForShop()
 		local content = shop:WaitForChild("Shop_Content", 10)
 		if not content then return end
 
-		local listFrame = content:WaitForChild("List", 10)
-		if not listFrame then return end
+		local list = content:WaitForChild("List", 10)
+		if not list then return end
 
-		-- GamepassList might be the list itself or a child called GamepassList
-		local gamepass = listFrame:WaitForChild("Gamepass", 10)
-if not gamepass then return end
+		local gamepassList = list:WaitForChild("GamepassList", 10)
+		if not gamepassList then return end
 
--- scan ALL descendants for Buy buttons
-for _, obj in ipairs(gamepass:GetDescendants()) do
-	if obj:IsA("TextButton") and obj.Name == "Buy" then
-		hookBuyButton(obj)
-	end
+		local item = gamepassList:WaitForChild("1227015099", 10)
+		if not item then return end
+
+		local realBuyBtn = item:WaitForChild("Buy", 10)
+		if not realBuyBtn then return end
+
+		hookBuyButton(realBuyBtn)
+	end)
 end
-
--- also hook future Buy buttons
-gamepass.DescendantAdded:Connect(function(obj)
-	if obj:IsA("TextButton") and obj.Name == "Buy" then
-		hookBuyButton(obj)
-	end
-end)
 
 watchForShop()
 
--- Also re-hook if Shop GUI is added later (e.g. after respawn)
+-- Re-hook if Shop reloads
 PlayerGui.ChildAdded:Connect(function(child)
 	if child.Name == "Shop" then
 		watchForShop()
@@ -673,7 +609,6 @@ end)
 -- ============================================================
 
 OpenBtn.MouseButton1Click:Connect(function()
-	-- When manually opening, also try to auto-detect gift target
 	local detected = getGiftTargetPlayer()
 	if detected ~= "" then
 		selectedPlayer    = detected
