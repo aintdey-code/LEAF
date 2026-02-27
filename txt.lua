@@ -159,7 +159,7 @@ IconFrame.Parent          = Card
 Instance.new("UICorner", IconFrame).CornerRadius = UDim.new(0, 8)
 
 local IconImg             = Instance.new("ImageLabel")
-IconImg.Size              = UDim2.new(1, 0, 1, 0)
+IconImg.Size              = UDim2.new(1.2, 0, 1.2, 0)
 IconImg.BackgroundTransparency = 0
 IconImg.Image             = "rbxassetid://100337222375957"
 IconImg.ScaleType         = Enum.ScaleType.Fit
