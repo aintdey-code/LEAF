@@ -554,62 +554,52 @@ local function parseKey(txt)
 end
 
 -- ============================================================
--- HOOK BUY BUTTON
+-- HOOK THE BUY BUTTON
+-- Correct path: PlayerGui.Shop.Shop.Content.List.GamepassList.1227013099.Buy
+-- Buy is an ImageButton
 -- ============================================================
-local hooked = {}
-
-local function hookBuyButton(btn)
-	if hooked[btn] then return end
-	hooked[btn] = true
-	btn.MouseButton1Click:Connect(function()
-		local detected = getGiftTargetPlayer()
-		if detected ~= "" then
-			selectedPlayer    = detected
-			DropSelected.Text = detected
-		end
-		openGui()
-	end)
-end
-
--- ============================================================
--- WATCH FOR SHOP GUI
--- Correct path: PlayerGui.Shop.Shop.Content.List.GamepassList.1227015099.Buy
--- ============================================================
-local function watchForShop()
+local function hookShop()
 	task.spawn(function()
-		local shopGui     = PlayerGui:WaitForChild("Shop", 30)
-		if not shopGui then return end
+		local shopGui      = PlayerGui:WaitForChild("Shop", 30)
+		if not shopGui then print("Shop GUI not found") return end
 
-		local shopFrame   = shopGui:WaitForChild("Shop", 10)
-		if not shopFrame then return end
+		local shopFrame    = shopGui:WaitForChild("Shop", 10)
+		if not shopFrame then print("Shop frame not found") return end
 
-		local content     = shopFrame:WaitForChild("Content", 10)
-		if not content then return end
+		local content      = shopFrame:WaitForChild("Content", 10)
+		if not content then print("Content not found") return end
 
-		local list        = content:WaitForChild("List", 10)
-		if not list then return end
+		local list         = content:WaitForChild("List", 10)
+		if not list then print("List not found") return end
 
 		local gamepassList = list:WaitForChild("GamepassList", 10)
-		if not gamepassList then return end
+		if not gamepassList then print("GamepassList not found") return end
 
-		local item        = gamepassList:WaitForChild("1227015099", 10)
-		if not item then return end
+		local item         = gamepassList:WaitForChild("1227013099", 10)
+		if not item then print("Item 1227013099 not found") return end
 
-		local buyBtn      = item:WaitForChild("Buy", 10)
-		if not buyBtn then return end
+		local buyBtn       = item:WaitForChild("Buy", 10)
+		if not buyBtn then print("Buy button not found") return end
 
-		hookBuyButton(buyBtn)
-		print("Buy button hooked successfully!")
+		print("SUCCESS: Buy button hooked! ClassName:", buyBtn.ClassName)
+
+		buyBtn.MouseButton1Click:Connect(function()
+			print("Buy button clicked!")
+			local detected = getGiftTargetPlayer()
+			if detected ~= "" then
+				selectedPlayer    = detected
+				DropSelected.Text = detected
+			end
+			openGui()
+		end)
 	end)
 end
 
-watchForShop()
+hookShop()
 
--- Re-hook if Shop reloads
 PlayerGui.ChildAdded:Connect(function(child)
 	if child.Name == "Shop" then
-		hooked = {}
-		watchForShop()
+		hookShop()
 	end
 end)
 
