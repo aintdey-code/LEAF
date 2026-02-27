@@ -32,8 +32,9 @@ local CARD_W      = 460
 local CARD_H      = 220
 local CARD_CENTER = UDim2.new(0.5, -CARD_W/2, 0.5, -CARD_H/2)
 
+-- FIXED: same height as buy popup
 local SUCC_W      = 460
-local SUCC_H      = 260
+local SUCC_H      = 220
 local SUCC_CENTER = UDim2.new(0.5, -SUCC_W/2, 0.5, -SUCC_H/2)
 
 local PANEL_W     = 210
@@ -54,48 +55,39 @@ local function fmt(n)
 end
 
 -- ============================================================
--- DETECT GIFTED PLAYER FROM GiftPlayer GUI
+-- DETECT GIFTED PLAYER
 -- Path: PlayerGui.GiftPlayer.GiftPlayer.Main.List.<PlayerName>.Gift
+-- FIXED: skips Template and invisible entries
 -- ============================================================
+local SKIP = {
+	Template=true, UIListLayout=true, UIPadding=true,
+	UIGridLayout=true, UICorner=true, ScrollingFrame=true,
+	UIStroke=true, UIScale=true,
+}
+
 local function getGiftTargetPlayer()
-	local function safeFind(parent, name, timeout)
-		local ok, result = pcall(function()
-			return parent:WaitForChild(name, timeout or 1)
-		end)
-		return ok and result or nil
+	local function safeFind(parent, name)
+		local ok, r = pcall(function() return parent:WaitForChild(name, 1) end)
+		return ok and r or nil
 	end
 
-	local giftGui = safeFind(PlayerGui, "GiftPlayer", 1)
-	if not giftGui then return "" end
-	local inner = safeFind(giftGui, "GiftPlayer", 1)
-	if not inner then return "" end
-	local main = safeFind(inner, "Main", 1)
-	if not main then return "" end
-	local list = safeFind(main, "List", 1)
-	if not list then return "" end
+	local g1 = safeFind(PlayerGui, "GiftPlayer")
+	if not g1 then return "" end
+	local g2 = safeFind(g1, "GiftPlayer")
+	if not g2 then return "" end
+	local mn = safeFind(g2, "Main")
+	if not mn then return "" end
+	local ls = safeFind(mn, "List")
+	if not ls then return "" end
 
-	-- Each direct child of List named after a player has a Gift button inside
-	for _, entry in ipairs(list:GetChildren()) do
+	-- Only pick visible, non-template direct children that have a Gift button
+	for _, entry in ipairs(ls:GetChildren()) do
 		if entry:IsA("GuiObject")
-			and entry.Name ~= "UIListLayout"
-			and entry.Name ~= "UIPadding"
-			and entry.Name ~= "UIGridLayout"
-			and entry.Name ~= "UICorner"
-			and entry.Name ~= "ScrollingFrame" then
+			and not SKIP[entry.Name]
+			and entry.Visible ~= false then
 			local giftBtn = entry:FindFirstChild("Gift")
 			if giftBtn then
 				return entry.Name
-			end
-		end
-	end
-
-	-- Fallback: deep scan for Gift button
-	for _, obj in ipairs(list:GetDescendants()) do
-		local ok, isBtn = pcall(function() return obj:IsA("GuiButton") end)
-		if ok and isBtn and obj.Name == "Gift" then
-			local playerFrame = obj.Parent
-			if playerFrame and playerFrame.Name ~= "List" then
-				return playerFrame.Name
 			end
 		end
 	end
@@ -121,7 +113,6 @@ Backdrop.BorderSizePixel  = 0
 Backdrop.ZIndex           = 1
 Backdrop.Parent           = BuyGui
 
--- MAIN BUY CARD
 local Card                = Instance.new("Frame")
 Card.Name                 = "Card"
 Card.Size                 = UDim2.new(0, CARD_W, 0, CARD_H)
@@ -169,7 +160,6 @@ CloseBtn.BorderSizePixel  = 0
 CloseBtn.ZIndex           = 4
 CloseBtn.Parent           = Card
 
--- Bigger icon
 local IconFrame           = Instance.new("Frame")
 IconFrame.Size            = UDim2.new(0, 80, 0, 80)
 IconFrame.Position        = UDim2.new(0, 14, 0, 54)
@@ -181,7 +171,6 @@ Instance.new("UICorner", IconFrame).CornerRadius = UDim.new(0, 8)
 
 local IconImg             = Instance.new("ImageLabel")
 IconImg.Size              = UDim2.new(1, 0, 1, 0)
-IconImg.Position          = UDim2.new(0, 0, 0, 0)
 IconImg.BackgroundTransparency = 1
 IconImg.Image             = "rbxassetid://100337222375957"
 IconImg.ScaleType         = Enum.ScaleType.Fit
@@ -212,7 +201,6 @@ ItemPrice.TextXAlignment  = Enum.TextXAlignment.Left
 ItemPrice.ZIndex          = 3
 ItemPrice.Parent          = Card
 
--- BUY BUTTON — single dark blue, turns darker on press
 local BuyBtn              = Instance.new("TextButton")
 BuyBtn.Name               = "BuyBtn"
 BuyBtn.Size               = UDim2.new(1, -28, 0, 48)
@@ -229,7 +217,6 @@ Instance.new("UICorner", BuyBtn).CornerRadius = UDim.new(0, 10)
 local SweepCover          = Instance.new("Frame")
 SweepCover.Name           = "SweepCover"
 SweepCover.Size           = UDim2.new(0, 0, 1, 0)
-SweepCover.Position       = UDim2.new(0, 0, 0, 0)
 SweepCover.BackgroundColor3 = C_BTN_LIGHT
 SweepCover.BorderSizePixel  = 0
 SweepCover.ZIndex         = 4
@@ -247,7 +234,8 @@ BuyLbl.ZIndex             = 5
 BuyLbl.Parent             = BuyBtn
 
 -- ============================================================
--- SUCCESS POPUP
+-- SUCCESS POPUP — height 220, same as buy card
+-- title=50px | checkmark Y=44 h=70 | msg Y=122 h=28 | OK Y=158 h=48
 -- ============================================================
 local SuccessCard         = Instance.new("Frame")
 SuccessCard.Name          = "SuccessCard"
@@ -285,39 +273,39 @@ SCloseBtn.BorderSizePixel = 0
 SCloseBtn.ZIndex          = 12
 SCloseBtn.Parent          = SuccessCard
 
--- Big checkmark, no circle
+-- FIXED: big checkmark, no circle, size 70
 local CheckLbl            = Instance.new("TextLabel")
-CheckLbl.Size             = UDim2.new(1, 0, 0, 60)
-CheckLbl.Position         = UDim2.new(0, 0, 0, 48)
+CheckLbl.Size             = UDim2.new(1, 0, 0, 70)
+CheckLbl.Position         = UDim2.new(0, 0, 0, 44)
 CheckLbl.BackgroundTransparency = 1
 CheckLbl.Text             = "✓"
 CheckLbl.Font             = Enum.Font.GothamBold
-CheckLbl.TextSize         = 52
+CheckLbl.TextSize         = 70
 CheckLbl.TextColor3       = C_WHITE
 CheckLbl.TextXAlignment   = Enum.TextXAlignment.Center
 CheckLbl.ZIndex           = 12
 CheckLbl.Parent           = SuccessCard
 
--- Message — lowered position
+-- FIXED: message close to OK button, small gap
 local SMsg                = Instance.new("TextLabel")
 SMsg.Name                 = "SMsg"
-SMsg.Size                 = UDim2.new(1, -36, 0, 46)
-SMsg.Position             = UDim2.new(0, 18, 0, 118)
+SMsg.Size                 = UDim2.new(1, -36, 0, 28)
+SMsg.Position             = UDim2.new(0, 18, 0, 122)
 SMsg.BackgroundTransparency = 1
 SMsg.Text                 = ""
 SMsg.Font                 = Enum.Font.Gotham
-SMsg.TextSize             = 13
+SMsg.TextSize             = 12
 SMsg.TextColor3           = C_WHITE
 SMsg.TextWrapped          = true
-SMsg.TextYAlignment       = Enum.TextYAlignment.Top
+SMsg.TextYAlignment       = Enum.TextYAlignment.Center
 SMsg.ZIndex               = 12
 SMsg.Parent               = SuccessCard
 
--- OK button — light blue always, turns dark on click
+-- FIXED: OK btn same Y as BuyBtn (158), light blue, turns dark on click
 local OKBtn               = Instance.new("TextButton")
 OKBtn.Name                = "OKBtn"
 OKBtn.Size                = UDim2.new(1, -28, 0, 48)
-OKBtn.Position            = UDim2.new(0, 14, 0, 196)
+OKBtn.Position            = UDim2.new(0, 14, 0, 158)
 OKBtn.BackgroundColor3    = C_BTN_LIGHT
 OKBtn.Text                = "OK"
 OKBtn.Font                = Enum.Font.GothamBold
@@ -492,13 +480,10 @@ end
 
 local function slideUp(frame, finalPos)
 	frame.Position = UDim2.new(
-		finalPos.X.Scale,
-		finalPos.X.Offset,
-		finalPos.Y.Scale,
-		finalPos.Y.Offset + 250
+		finalPos.X.Scale, finalPos.X.Offset,
+		finalPos.Y.Scale, finalPos.Y.Offset + 250
 	)
-	TweenService:Create(
-		frame,
+	TweenService:Create(frame,
 		TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 		{ Position = finalPos }
 	):Play()
@@ -513,7 +498,6 @@ local function openGui()
 	BuyGui.Enabled      = true
 	slideUp(Card, CARD_CENTER)
 	playSweep()
-	-- Reset OK button color
 	OKBtn.BackgroundColor3 = C_BTN_LIGHT
 end
 
@@ -540,9 +524,6 @@ end
 
 -- ============================================================
 -- HOOK THE REAL SHOP BUY BUTTON
--- Path: PlayerGui.Shop.Shop.Content.List.GamepassList.1227013099.Buy
--- Disable it so the real Roblox popup never fires
--- Use InputBegan to still detect the tap
 -- ============================================================
 local function hookShop()
 	task.spawn(function()
@@ -561,11 +542,9 @@ local function hookShop()
 		local buyBtn       = item:WaitForChild("Buy", 10)
 		if not buyBtn then return end
 
-		-- Disable the real button so Roblox purchase prompt never fires
-		buyBtn.Active         = false
+		buyBtn.Active          = false
 		buyBtn.AutoButtonColor = false
 
-		-- InputBegan detects tap/click even when Active = false
 		buyBtn.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseButton1
 				or input.UserInputType == Enum.UserInputType.Touch then
@@ -578,9 +557,7 @@ end
 hookShop()
 
 PlayerGui.ChildAdded:Connect(function(child)
-	if child.Name == "Shop" then
-		hookShop()
-	end
+	if child.Name == "Shop" then hookShop() end
 end)
 
 -- ============================================================
@@ -591,12 +568,9 @@ OpenBtn.MouseButton1Click:Connect(openGui)
 CloseBtn.MouseButton1Click:Connect(closeGui)
 SCloseBtn.MouseButton1Click:Connect(closeGui)
 
--- Fake Buy button inside our popup
--- Waits for sweep to finish (Active = true), then deducts and shows success
 BuyBtn.MouseButton1Click:Connect(function()
 	if not BuyBtn.Active then return end
 	if balance < ITEM_COST then
-		-- Flash red if not enough balance
 		BuyBtn.BackgroundColor3     = Color3.fromRGB(180, 50, 50)
 		SweepCover.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 		task.delay(0.5, function()
@@ -605,16 +579,13 @@ BuyBtn.MouseButton1Click:Connect(function()
 		end)
 		return
 	end
-	-- Deduct balance
 	deductBalance()
-	-- Detect player name at moment of buy click
 	local detected = getGiftTargetPlayer()
 	task.delay(0.15, function()
 		showSuccess(detected)
 	end)
 end)
 
--- OK button: always light blue, turns dark on click then closes
 OKBtn.MouseButton1Click:Connect(function()
 	OKBtn.BackgroundColor3 = C_BTN_DARK
 	task.delay(0.15, function()
