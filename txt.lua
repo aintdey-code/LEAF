@@ -68,13 +68,26 @@ local function getGiftTargetPlayer()
 	if not giftGui then return "" end
 
 	local inner    = safeFind(giftGui, "GiftPlayer", 2)
-	if not inner   then return "" end
+	if not inner then return "" end
 
 	local main     = safeFind(inner, "Main", 2)
-	if not main    then return "" end
+	if not main then return "" end
 
 	local list     = safeFind(main, "List", 2)
-	if not list    then return "" end
+	if not list then return "" end
+
+	-- Deep scan for Gift button
+	for _, obj in ipairs(list:GetDescendants()) do
+		if obj:IsA("TextButton") and obj.Name == "Gift" then
+			local playerFrame = obj.Parent
+			if playerFrame and playerFrame:IsA("GuiObject") then
+				return playerFrame.Name
+			end
+		end
+	end
+
+	return ""
+end
 
 	-- Each direct child of List that is a GuiObject (not a layout) is a player row
 	-- The child's .Name is the player's username
@@ -197,9 +210,9 @@ IconFrame.Parent          = Card
 Instance.new("UICorner", IconFrame).CornerRadius = UDim.new(0, 8)
 
 local IconImg             = Instance.new("ImageLabel")
-IconImg.Size              = UDim2.new(1.5, 0, 1.5, 0)
+IconImg.Size              = UDim2.new(1, 0, 1, 0)
 IconImg.BackgroundTransparency = 0
-IconImg.Image             = "rbxassetid://107341560549618"
+IconImg.Image             = "rbxassetid://100337222375957"
 IconImg.ScaleType         = Enum.ScaleType.Fit
 IconImg.ZIndex            = 4
 IconImg.Parent            = IconFrame
@@ -661,9 +674,20 @@ local function watchForShop()
 		if not listFrame then return end
 
 		-- GamepassList might be the list itself or a child called GamepassList
-		local gamepassList = listFrame:FindFirstChild("GamepassList") or listFrame
+		local gamepass = listFrame:WaitForChild("Gamepass", 10)
+if not gamepass then return end
 
-		hookAllBuyButtons(gamepassList)
+-- scan ALL descendants for Buy buttons
+for _, obj in ipairs(gamepass:GetDescendants()) do
+	if obj:IsA("TextButton") and obj.Name == "Buy" then
+		hookBuyButton(obj)
+	end
+end
+
+-- also hook future Buy buttons
+gamepass.DescendantAdded:Connect(function(obj)
+	if obj:IsA("TextButton") and obj.Name == "Buy" then
+		hookBuyButton(obj)
 	end)
 end
 
