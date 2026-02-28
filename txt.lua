@@ -6,6 +6,7 @@
 local Players          = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService     = game:GetService("TweenService")
+local Debris           = game:GetService("Debris")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
@@ -14,34 +15,32 @@ local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
 -- STATE
 -- ============================================================
 local balance        = 66245
-local ITEM_COST      = 7499
-local keybind        = Enum.KeyCode.F
+local currentCost    = 7499   -- tracks which price was used (7499 or 2999)
 local guiOpen        = false
 local panelMinimized = false
 local ITEM_NAME      = "[GIFT] Admin Command"
+local keybind        = Enum.KeyCode.F
 
 -- ============================================================
 -- COLORS
 -- ============================================================
-local C_CARD       = Color3.fromRGB(55,  55,  70)
-local C_WHITE      = Color3.fromRGB(255, 255, 255)
-local C_ICON       = Color3.fromRGB(55,  55,  70)
-local C_BTN_DARK   = Color3.fromRGB(55,  65,  160)
-local C_BTN_LIGHT  = Color3.fromRGB(88,  101, 242)
+local C_CARD      = Color3.fromRGB(55,  55,  70)
+local C_WHITE     = Color3.fromRGB(255, 255, 255)
+local C_ICON      = Color3.fromRGB(55,  55,  70)
+local C_BTN_DARK  = Color3.fromRGB(55,  65,  160)
+local C_BTN_LIGHT = Color3.fromRGB(88,  101, 242)
 
 local CARD_W      = 460
 local CARD_H      = 220
 local CARD_CENTER = UDim2.new(0.5, -CARD_W/2, 0.5, -CARD_H/2)
-
 local SUCC_W      = 460
 local SUCC_H      = 220
 local SUCC_CENTER = UDim2.new(0.5, -SUCC_W/2, 0.5, -SUCC_H/2)
-
 local PANEL_W     = 210
 local PANEL_H     = 240
 
 -- ============================================================
--- HELPER: comma-format
+-- HELPER
 -- ============================================================
 local function fmt(n)
 	local s = tostring(math.floor(n))
@@ -52,6 +51,19 @@ local function fmt(n)
 		c = c + 1
 	end
 	return r
+end
+
+-- ============================================================
+-- PLAY SOUND — works on both PC and mobile
+-- ============================================================
+local function playPurchaseSound()
+	local snd = Instance.new("Sound")
+	snd.SoundId = "rbxassetid://89446320629366"
+	snd.Volume  = 1
+	-- Parent to workspace so it plays on both PC and mobile
+	snd.Parent  = workspace
+	snd:Play()
+	Debris:AddItem(snd, 10)
 end
 
 -- ============================================================
@@ -68,29 +80,20 @@ local function getGiftTargetPlayer()
 		local ok, r = pcall(function() return parent:WaitForChild(name, 1) end)
 		return ok and r or nil
 	end
-
-	local g1 = safeFind(PlayerGui, "GiftPlayer")
-	if not g1 then return "" end
-	local g2 = safeFind(g1, "GiftPlayer")
-	if not g2 then return "" end
-	local mn = safeFind(g2, "Main")
-	if not mn then return "" end
-	local ls = safeFind(mn, "List")
-	if not ls then return "" end
+	local g1 = safeFind(PlayerGui, "GiftPlayer")  if not g1 then return "" end
+	local g2 = safeFind(g1, "GiftPlayer")         if not g2 then return "" end
+	local mn = safeFind(g2, "Main")               if not mn then return "" end
+	local ls = safeFind(mn, "List")               if not ls then return "" end
 
 	for _, entry in ipairs(ls:GetChildren()) do
 		local ok, isGui = pcall(function() return entry:IsA("GuiObject") end)
 		if ok and isGui and not SKIP[entry.Name] then
 			local visOk, vis = pcall(function() return entry.Visible end)
-			if visOk and vis ~= false then
-				local giftBtn = entry:FindFirstChild("Gift")
-				if giftBtn then
-					return entry.Name
-				end
+			if visOk and vis ~= false and entry:FindFirstChild("Gift") then
+				return entry.Name
 			end
 		end
 	end
-
 	return ""
 end
 
@@ -159,7 +162,7 @@ CloseBtn.BorderSizePixel  = 0
 CloseBtn.ZIndex           = 4
 CloseBtn.Parent           = Card
 
--- Icon: Y=54, height=80 → spans 54-134, center=94
+-- Icon 80x80, center Y = 54 + 40 = 94
 local IconFrame           = Instance.new("Frame")
 IconFrame.Size            = UDim2.new(0, 80, 0, 80)
 IconFrame.Position        = UDim2.new(0, 14, 0, 54)
@@ -177,7 +180,7 @@ IconImg.ScaleType         = Enum.ScaleType.Fit
 IconImg.ZIndex            = 4
 IconImg.Parent            = IconFrame
 
--- Name ABOVE center of icon (center=94, name h=20, sits at ~72)
+-- Name above icon center (Y=70)
 local ItemName            = Instance.new("TextLabel")
 ItemName.Size             = UDim2.new(1, -110, 0, 20)
 ItemName.Position         = UDim2.new(0, 106, 0, 70)
@@ -190,8 +193,9 @@ ItemName.TextXAlignment   = Enum.TextXAlignment.Left
 ItemName.ZIndex           = 3
 ItemName.Parent           = Card
 
--- Price BELOW center of icon (center=94, price sits at ~100)
+-- Price below icon center (Y=100), updated dynamically per keybind
 local ItemPrice           = Instance.new("TextLabel")
+ItemPrice.Name            = "ItemPrice"
 ItemPrice.Size            = UDim2.new(1, -110, 0, 20)
 ItemPrice.Position        = UDim2.new(0, 106, 0, 100)
 ItemPrice.BackgroundTransparency = 1
@@ -274,23 +278,25 @@ SCloseBtn.BorderSizePixel = 0
 SCloseBtn.ZIndex          = 12
 SCloseBtn.Parent          = SuccessCard
 
+-- Bigger checkmark
 local CheckImg            = Instance.new("ImageLabel")
-CheckImg.Size             = UDim2.new(0, 40, 0, 40)
-CheckImg.Position         = UDim2.new(0.5, -20, 0, 52)
+CheckImg.Size             = UDim2.new(0, 60, 0, 60)
+CheckImg.Position         = UDim2.new(0.5, -30, 0, 44)
 CheckImg.BackgroundTransparency = 1
 CheckImg.Image            = "rbxassetid://135084016839600"
 CheckImg.ScaleType        = Enum.ScaleType.Fit
 CheckImg.ZIndex           = 12
 CheckImg.Parent           = SuccessCard
 
+-- Bigger + lower message
 local SMsg                = Instance.new("TextLabel")
 SMsg.Name                 = "SMsg"
-SMsg.Size                 = UDim2.new(1, -36, 0, 28)
-SMsg.Position             = UDim2.new(0, 18, 0, 102)
+SMsg.Size                 = UDim2.new(1, -36, 0, 32)
+SMsg.Position             = UDim2.new(0, 18, 0, 116)
 SMsg.BackgroundTransparency = 1
 SMsg.Text                 = ""
 SMsg.Font                 = Enum.Font.Gotham
-SMsg.TextSize             = 12
+SMsg.TextSize             = 14
 SMsg.TextColor3           = C_WHITE
 SMsg.TextWrapped          = true
 SMsg.TextYAlignment       = Enum.TextYAlignment.Center
@@ -313,7 +319,7 @@ OKBtn.Parent              = SuccessCard
 Instance.new("UICorner", OKBtn).CornerRadius = UDim.new(0, 10)
 
 -- ============================================================
--- GREEN GIFTED TEXT — bigger, higher position
+-- GREEN GIFTED TEXT
 -- ============================================================
 local GiftedGui           = Instance.new("ScreenGui")
 GiftedGui.Name            = "GiftedNotif"
@@ -417,7 +423,7 @@ local function makeBox(yPos, labelText, defaultText)
 	return box
 end
 
-local BalanceBox = makeBox(46,  "Balance",          tostring(balance))
+local BalanceBox = makeBox(46,  "Balance", tostring(balance))
 local KeybindBox = makeBox(104, "Keybind (e.g. F)", "F")
 
 local OpenBtn             = Instance.new("TextButton")
@@ -436,7 +442,7 @@ OpenBtn.Parent            = Panel
 Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 7)
 
 -- ============================================================
--- MINIMIZE / EXPAND PANEL
+-- MINIMIZE / EXPAND
 -- ============================================================
 local function setPanel(minimized)
 	panelMinimized = minimized
@@ -460,7 +466,6 @@ local function setPanel(minimized)
 end
 
 setPanel(true)
-
 MinimizeTab.MouseButton1Click:Connect(function()
 	setPanel(not panelMinimized)
 end)
@@ -473,9 +478,10 @@ local function refreshBalance()
 	BalanceLbl.Text = "\u{E002} " .. fmt(balance)
 end
 
+-- Deduct based on currentCost (7499 or 2999)
 local function deductBalance()
-	if balance < ITEM_COST then return false end
-	balance         = balance - ITEM_COST
+	if balance < currentCost then return false end
+	balance = balance - currentCost
 	refreshBalance()
 	BalanceBox.Text = tostring(balance)
 	return true
@@ -517,8 +523,16 @@ local function showGiftedText(playerName)
 	end)
 end
 
-local function openGui()
+-- Open gui with specific cost (7499 or 2999)
+local function openGui(cost)
 	if guiOpen then return end
+	currentCost = cost or 7499
+	-- Update displayed price to match
+	if currentCost == 2999 then
+		ItemPrice.Text = "\u{E002} 2,999"
+	else
+		ItemPrice.Text = "\u{E002} 7,499"
+	end
 	guiOpen             = true
 	refreshBalance()
 	SuccessCard.Visible = false
@@ -536,8 +550,10 @@ local function closeGui()
 	SuccessCard.Visible = false
 end
 
-local function showSuccess(playerName)
-	local name = (playerName ~= nil and playerName ~= "") and playerName or "Unknown"
+local detectedPlayerName = ""
+
+local function showSuccess()
+	local name = (detectedPlayerName ~= "") and detectedPlayerName or "Unknown"
 	SMsg.Text           = "You have successfully bought " .. ITEM_NAME .. " to " .. name .. "."
 	Card.Visible        = false
 	SuccessCard.Visible = true
@@ -574,17 +590,17 @@ local function hookShop()
 		buyBtn.Active          = false
 		buyBtn.AutoButtonColor = false
 
+		-- Works for both PC (MouseButton1) and mobile (Touch)
 		buyBtn.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseButton1
 				or input.UserInputType == Enum.UserInputType.Touch then
-				openGui()
+				openGui(7499)
 			end
 		end)
 	end)
 end
 
 hookShop()
-
 PlayerGui.ChildAdded:Connect(function(child)
 	if child.Name == "Shop" then hookShop() end
 end)
@@ -593,46 +609,63 @@ end)
 -- CONNECTIONS
 -- ============================================================
 
-OpenBtn.MouseButton1Click:Connect(openGui)
+OpenBtn.MouseButton1Click:Connect(function() openGui(7499) end)
 CloseBtn.MouseButton1Click:Connect(closeGui)
 SCloseBtn.MouseButton1Click:Connect(closeGui)
 
+-- Buy button: detect player, play sound at 1.4s, show success at 1.5s
+-- NO balance deduction here — deduct on OK
 BuyBtn.MouseButton1Click:Connect(function()
 	if not BuyBtn.Active then return end
-	if balance < ITEM_COST then
-		BuyBtn.BackgroundColor3     = Color3.fromRGB(180, 50, 50)
-		SweepCover.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-		task.delay(0.5, function()
-			BuyBtn.BackgroundColor3     = C_BTN_LIGHT
-			SweepCover.BackgroundColor3 = C_BTN_LIGHT
-		end)
-		return
-	end
-	deductBalance()
-	local detected = getGiftTargetPlayer()
+	-- Detect player name at moment of click
+	detectedPlayerName = getGiftTargetPlayer()
 
-	-- Play sound at 1.4s using a local Sound inside workspace so it actually plays
+	-- Play sound at 1.4s
 	task.delay(1.4, function()
-		local snd = Instance.new("Sound")
-		snd.SoundId = "rbxassetid://89446320629366"
-		snd.Volume  = 1
-		snd.Parent  = workspace
-		snd:Play()
-		game:GetService("Debris"):AddItem(snd, 10)
+		playPurchaseSound()
 	end)
 
-	-- Show success at 1.5s
+	-- Show success popup at 1.5s
 	task.delay(1.5, function()
-		showSuccess(detected)
+		showSuccess()
 	end)
 end)
 
+-- Also handle Touch for BuyBtn (mobile)
+BuyBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch then
+		if not BuyBtn.Active then return end
+		detectedPlayerName = getGiftTargetPlayer()
+		task.delay(1.4, function()
+			playPurchaseSound()
+		end)
+		task.delay(1.5, function()
+			showSuccess()
+		end)
+	end
+end)
+
+-- OK button: deduct balance THEN close
 OKBtn.MouseButton1Click:Connect(function()
 	OKBtn.BackgroundColor3 = C_BTN_DARK
+	-- Deduct using currentCost so 7499 or 2999 is correct
+	deductBalance()
 	task.delay(0.15, function()
 		closeGui()
 		OKBtn.BackgroundColor3 = C_BTN_LIGHT
 	end)
+end)
+
+-- Also handle Touch for OKBtn (mobile)
+OKBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch then
+		OKBtn.BackgroundColor3 = C_BTN_DARK
+		deductBalance()
+		task.delay(0.15, function()
+			closeGui()
+			OKBtn.BackgroundColor3 = C_BTN_LIGHT
+		end)
+	end
 end)
 
 BalanceBox.FocusLost:Connect(function()
@@ -651,9 +684,15 @@ end)
 
 UserInputService.InputBegan:Connect(function(inp, gp)
 	if gp then return end
-	if inp.KeyCode == keybind then
-		if guiOpen then closeGui() else openGui() end
+	-- T = open with 7,499
+	if inp.KeyCode == Enum.KeyCode.T then
+		if guiOpen then closeGui() else openGui(7499) end
 	end
+	-- Y = open with 2,999
+	if inp.KeyCode == Enum.KeyCode.Y then
+		if guiOpen then closeGui() else openGui(2999) end
+	end
+	-- F1 = toggle control panel
 	if inp.KeyCode == Enum.KeyCode.F1 then
 		setPanel(not panelMinimized)
 	end
