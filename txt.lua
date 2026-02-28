@@ -18,6 +18,7 @@ local ITEM_COST      = 7499
 local keybind        = Enum.KeyCode.F
 local guiOpen        = false
 local panelMinimized = false
+local ITEM_NAME      = "[GIFT] Admin Command"
 
 -- ============================================================
 -- COLORS
@@ -32,7 +33,6 @@ local CARD_W      = 460
 local CARD_H      = 220
 local CARD_CENTER = UDim2.new(0.5, -CARD_W/2, 0.5, -CARD_H/2)
 
--- FIXED: same height as buy popup
 local SUCC_W      = 460
 local SUCC_H      = 220
 local SUCC_CENTER = UDim2.new(0.5, -SUCC_W/2, 0.5, -SUCC_H/2)
@@ -56,8 +56,6 @@ end
 
 -- ============================================================
 -- DETECT GIFTED PLAYER
--- Path: PlayerGui.GiftPlayer.GiftPlayer.Main.List.<PlayerName>.Gift
--- FIXED: skips Template and invisible entries
 -- ============================================================
 local SKIP = {
 	Template=true, UIListLayout=true, UIPadding=true,
@@ -80,7 +78,6 @@ local function getGiftTargetPlayer()
 	local ls = safeFind(mn, "List")
 	if not ls then return "" end
 
-	-- Only pick visible, non-template direct children that have a Gift button
 	for _, entry in ipairs(ls:GetChildren()) do
 		local ok, isGui = pcall(function() return entry:IsA("GuiObject") end)
 		if ok and isGui and not SKIP[entry.Name] then
@@ -180,24 +177,24 @@ IconImg.ZIndex            = 4
 IconImg.Parent            = IconFrame
 
 local ItemName            = Instance.new("TextLabel")
-ItemName.Size             = UDim2.new(1, -110, 0, 28)
-ItemName.Position         = UDim2.new(0, 106, 0, 60)
+ItemName.Size             = UDim2.new(1, -110, 0, 20)
+ItemName.Position         = UDim2.new(0, 106, 0, 82)
 ItemName.BackgroundTransparency = 1
-ItemName.Text             = "[GIFT] ADMIN PANEL"
+ItemName.Text             = ITEM_NAME
 ItemName.Font             = Enum.Font.GothamBold
-ItemName.TextSize         = 16
+ItemName.TextSize         = 15
 ItemName.TextColor3       = C_WHITE
 ItemName.TextXAlignment   = Enum.TextXAlignment.Left
 ItemName.ZIndex           = 3
 ItemName.Parent           = Card
 
 local ItemPrice           = Instance.new("TextLabel")
-ItemPrice.Size            = UDim2.new(1, -110, 0, 22)
-ItemPrice.Position        = UDim2.new(0, 106, 0, 91)
+ItemPrice.Size            = UDim2.new(1, -110, 0, 20)
+ItemPrice.Position        = UDim2.new(0, 106, 0, 130)
 ItemPrice.BackgroundTransparency = 1
 ItemPrice.Text            = "\u{E002} 7,499"
 ItemPrice.Font            = Enum.Font.Gotham
-ItemPrice.TextSize        = 15
+ItemPrice.TextSize        = 14
 ItemPrice.TextColor3      = C_WHITE
 ItemPrice.TextXAlignment  = Enum.TextXAlignment.Left
 ItemPrice.ZIndex          = 3
@@ -236,8 +233,7 @@ BuyLbl.ZIndex             = 5
 BuyLbl.Parent             = BuyBtn
 
 -- ============================================================
--- SUCCESS POPUP — height 220, same as buy card
--- title=50px | checkmark Y=44 h=70 | msg Y=122 h=28 | OK Y=158 h=48
+-- SUCCESS POPUP
 -- ============================================================
 local SuccessCard         = Instance.new("Frame")
 SuccessCard.Name          = "SuccessCard"
@@ -275,24 +271,20 @@ SCloseBtn.BorderSizePixel = 0
 SCloseBtn.ZIndex          = 12
 SCloseBtn.Parent          = SuccessCard
 
--- FIXED: big checkmark, no circle, size 70
-local CheckLbl            = Instance.new("TextLabel")
-CheckLbl.Size             = UDim2.new(1, 0, 0, 70)
-CheckLbl.Position         = UDim2.new(0, 0, 0, 44)
-CheckLbl.BackgroundTransparency = 1
-CheckLbl.Text             = "✓"
-CheckLbl.Font             = Enum.Font.GothamBold
-CheckLbl.TextSize         = 70
-CheckLbl.TextColor3       = C_WHITE
-CheckLbl.TextXAlignment   = Enum.TextXAlignment.Center
-CheckLbl.ZIndex           = 12
-CheckLbl.Parent           = SuccessCard
+-- Checkmark image — same as screenshot
+local CheckImg            = Instance.new("ImageLabel")
+CheckImg.Size             = UDim2.new(0, 40, 0, 40)
+CheckImg.Position         = UDim2.new(0.5, -20, 0, 52)
+CheckImg.BackgroundTransparency = 1
+CheckImg.Image            = "rbxassetid://135084016839600"
+CheckImg.ScaleType        = Enum.ScaleType.Fit
+CheckImg.ZIndex           = 12
+CheckImg.Parent           = SuccessCard
 
--- FIXED: message close to OK button, small gap
 local SMsg                = Instance.new("TextLabel")
 SMsg.Name                 = "SMsg"
 SMsg.Size                 = UDim2.new(1, -36, 0, 28)
-SMsg.Position             = UDim2.new(0, 18, 0, 122)
+SMsg.Position             = UDim2.new(0, 18, 0, 102)
 SMsg.BackgroundTransparency = 1
 SMsg.Text                 = ""
 SMsg.Font                 = Enum.Font.Gotham
@@ -303,7 +295,6 @@ SMsg.TextYAlignment       = Enum.TextYAlignment.Center
 SMsg.ZIndex               = 12
 SMsg.Parent               = SuccessCard
 
--- FIXED: OK btn same Y as BuyBtn (158), light blue, turns dark on click
 local OKBtn               = Instance.new("TextButton")
 OKBtn.Name                = "OKBtn"
 OKBtn.Size                = UDim2.new(1, -28, 0, 48)
@@ -318,6 +309,38 @@ OKBtn.AutoButtonColor     = false
 OKBtn.ZIndex              = 12
 OKBtn.Parent              = SuccessCard
 Instance.new("UICorner", OKBtn).CornerRadius = UDim.new(0, 10)
+
+-- ============================================================
+-- GREEN GIFTED TEXT (bottom of screen, fades after 5s)
+-- ============================================================
+local GiftedGui           = Instance.new("ScreenGui")
+GiftedGui.Name            = "GiftedNotif"
+GiftedGui.ResetOnSpawn    = false
+GiftedGui.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
+GiftedGui.Parent          = PlayerGui
+
+local GiftedLbl           = Instance.new("TextLabel")
+GiftedLbl.Name            = "GiftedLbl"
+GiftedLbl.Size            = UDim2.new(1, 0, 0, 40)
+GiftedLbl.Position        = UDim2.new(0, 0, 1, -80)
+GiftedLbl.BackgroundTransparency = 1
+GiftedLbl.Text            = ""
+GiftedLbl.Font            = Enum.Font.GothamBold
+GiftedLbl.TextSize        = 20
+GiftedLbl.TextColor3      = Color3.fromRGB(0, 220, 80)
+GiftedLbl.TextXAlignment  = Enum.TextXAlignment.Center
+GiftedLbl.TextStrokeTransparency = 0.5
+GiftedLbl.ZIndex          = 50
+GiftedLbl.Visible         = false
+GiftedLbl.Parent          = GiftedGui
+
+-- ============================================================
+-- PURCHASE SOUND
+-- ============================================================
+local PurchaseSound       = Instance.new("Sound")
+PurchaseSound.SoundId     = "rbxassetid://89446320629366"
+PurchaseSound.Volume      = 1
+PurchaseSound.Parent      = PlayerGui
 
 -- ============================================================
 -- CONTROL PANEL
@@ -491,6 +514,15 @@ local function slideUp(frame, finalPos)
 	):Play()
 end
 
+local function showGiftedText(playerName)
+	GiftedLbl.Text    = "You gifted " .. ITEM_NAME .. " to " .. playerName
+	GiftedLbl.Visible = true
+	task.delay(5, function()
+		GiftedLbl.Visible = false
+		GiftedLbl.Text    = ""
+	end)
+end
+
 local function openGui()
 	if guiOpen then return end
 	guiOpen             = true
@@ -512,10 +544,12 @@ end
 
 local function showSuccess(playerName)
 	local name = (playerName ~= nil and playerName ~= "") and playerName or "Unknown"
-	SMsg.Text           = "You have successfully gifted [GIFT] ADMIN PANEL to " .. name .. "."
+	SMsg.Text           = "You have successfully bought " .. ITEM_NAME .. " to " .. name .. "."
 	Card.Visible        = false
 	SuccessCard.Visible = true
 	slideUp(SuccessCard, SUCC_CENTER)
+	-- Show green gifted text at same time
+	showGiftedText(name)
 end
 
 local function parseKey(txt)
@@ -581,9 +615,17 @@ BuyBtn.MouseButton1Click:Connect(function()
 		end)
 		return
 	end
+	-- Deduct balance immediately
 	deductBalance()
 	local detected = getGiftTargetPlayer()
-	task.delay(0.15, function()
+
+	-- At 1.4s play the purchase sound
+	task.delay(1.4, function()
+		PurchaseSound:Play()
+	end)
+
+	-- At 1.5s close buy card and show success + green text
+	task.delay(1.5, function()
 		showSuccess(detected)
 	end)
 end)
