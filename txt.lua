@@ -159,6 +159,7 @@ CloseBtn.BorderSizePixel  = 0
 CloseBtn.ZIndex           = 4
 CloseBtn.Parent           = Card
 
+-- Icon: Y=54, height=80 → spans 54-134, center=94
 local IconFrame           = Instance.new("Frame")
 IconFrame.Size            = UDim2.new(0, 80, 0, 80)
 IconFrame.Position        = UDim2.new(0, 14, 0, 54)
@@ -176,9 +177,10 @@ IconImg.ScaleType         = Enum.ScaleType.Fit
 IconImg.ZIndex            = 4
 IconImg.Parent            = IconFrame
 
+-- Name ABOVE center of icon (center=94, name h=20, sits at ~72)
 local ItemName            = Instance.new("TextLabel")
 ItemName.Size             = UDim2.new(1, -110, 0, 20)
-ItemName.Position         = UDim2.new(0, 106, 0, 82)
+ItemName.Position         = UDim2.new(0, 106, 0, 70)
 ItemName.BackgroundTransparency = 1
 ItemName.Text             = ITEM_NAME
 ItemName.Font             = Enum.Font.GothamBold
@@ -188,9 +190,10 @@ ItemName.TextXAlignment   = Enum.TextXAlignment.Left
 ItemName.ZIndex           = 3
 ItemName.Parent           = Card
 
+-- Price BELOW center of icon (center=94, price sits at ~100)
 local ItemPrice           = Instance.new("TextLabel")
 ItemPrice.Size            = UDim2.new(1, -110, 0, 20)
-ItemPrice.Position        = UDim2.new(0, 106, 0, 130)
+ItemPrice.Position        = UDim2.new(0, 106, 0, 100)
 ItemPrice.BackgroundTransparency = 1
 ItemPrice.Text            = "\u{E002} 7,499"
 ItemPrice.Font            = Enum.Font.Gotham
@@ -271,7 +274,6 @@ SCloseBtn.BorderSizePixel = 0
 SCloseBtn.ZIndex          = 12
 SCloseBtn.Parent          = SuccessCard
 
--- Checkmark image — same as screenshot
 local CheckImg            = Instance.new("ImageLabel")
 CheckImg.Size             = UDim2.new(0, 40, 0, 40)
 CheckImg.Position         = UDim2.new(0.5, -20, 0, 52)
@@ -311,7 +313,7 @@ OKBtn.Parent              = SuccessCard
 Instance.new("UICorner", OKBtn).CornerRadius = UDim.new(0, 10)
 
 -- ============================================================
--- GREEN GIFTED TEXT (bottom of screen, fades after 5s)
+-- GREEN GIFTED TEXT — bigger, higher position
 -- ============================================================
 local GiftedGui           = Instance.new("ScreenGui")
 GiftedGui.Name            = "GiftedNotif"
@@ -321,26 +323,18 @@ GiftedGui.Parent          = PlayerGui
 
 local GiftedLbl           = Instance.new("TextLabel")
 GiftedLbl.Name            = "GiftedLbl"
-GiftedLbl.Size            = UDim2.new(1, 0, 0, 40)
-GiftedLbl.Position        = UDim2.new(0, 0, 1, -80)
+GiftedLbl.Size            = UDim2.new(1, 0, 0, 50)
+GiftedLbl.Position        = UDim2.new(0, 0, 1, -160)
 GiftedLbl.BackgroundTransparency = 1
 GiftedLbl.Text            = ""
 GiftedLbl.Font            = Enum.Font.GothamBold
-GiftedLbl.TextSize        = 20
+GiftedLbl.TextSize        = 26
 GiftedLbl.TextColor3      = Color3.fromRGB(0, 220, 80)
 GiftedLbl.TextXAlignment  = Enum.TextXAlignment.Center
-GiftedLbl.TextStrokeTransparency = 0.5
+GiftedLbl.TextStrokeTransparency = 0.4
 GiftedLbl.ZIndex          = 50
 GiftedLbl.Visible         = false
 GiftedLbl.Parent          = GiftedGui
-
--- ============================================================
--- PURCHASE SOUND
--- ============================================================
-local PurchaseSound       = Instance.new("Sound")
-PurchaseSound.SoundId     = "rbxassetid://89446320629366"
-PurchaseSound.Volume      = 1
-PurchaseSound.Parent      = PlayerGui
 
 -- ============================================================
 -- CONTROL PANEL
@@ -548,7 +542,6 @@ local function showSuccess(playerName)
 	Card.Visible        = false
 	SuccessCard.Visible = true
 	slideUp(SuccessCard, SUCC_CENTER)
-	-- Show green gifted text at same time
 	showGiftedText(name)
 end
 
@@ -615,16 +608,20 @@ BuyBtn.MouseButton1Click:Connect(function()
 		end)
 		return
 	end
-	-- Deduct balance immediately
 	deductBalance()
 	local detected = getGiftTargetPlayer()
 
-	-- At 1.4s play the purchase sound
+	-- Play sound at 1.4s using a local Sound inside workspace so it actually plays
 	task.delay(1.4, function()
-		PurchaseSound:Play()
+		local snd = Instance.new("Sound")
+		snd.SoundId = "rbxassetid://89446320629366"
+		snd.Volume  = 1
+		snd.Parent  = workspace
+		snd:Play()
+		game:GetService("Debris"):AddItem(snd, 10)
 	end)
 
-	-- At 1.5s close buy card and show success + green text
+	-- Show success at 1.5s
 	task.delay(1.5, function()
 		showSuccess(detected)
 	end)
