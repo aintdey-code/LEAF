@@ -1,6 +1,3 @@
--- ROBLOX SHOP INTERCEPTOR
--- LocalScript
-
 local Players            = game:GetService("Players")
 local UserInputService   = game:GetService("UserInputService")
 local TweenService       = game:GetService("TweenService")
@@ -106,12 +103,17 @@ local function getGiftTargetPlayer()
 end
 
 local function isGifting()
+	-- Check ScreenGui enabled
 	local giftGui = PlayerGui:FindFirstChild("GiftPlayer")
 	if not giftGui then return false end
+	local okE, en = pcall(function() return giftGui.Enabled end)
+	if not okE or not en then return false end
+	-- Check inner frame visible
 	local giftFrame = giftGui:FindFirstChild("GiftPlayer")
 	if not giftFrame then return false end
-	local ok, vis = pcall(function() return giftFrame.Visible end)
-	if not ok or not vis then return false end
+	local okV, vis = pcall(function() return giftFrame.Visible end)
+	if not okV or not vis then return false end
+	-- Must have a player actually selected
 	return getGiftTargetPlayer() ~= ""
 end
 
@@ -498,19 +500,21 @@ end
 local purchaseActive = false
 
 local function showSuccess()
-	if purchaseActive then return end  -- FIXED: block multiple purchase completeds
+	if purchaseActive then return end
 	purchaseActive = true
-	local name = (detectedPlayer ~= "") and detectedPlayer or "Unknown"
+	local gifting = detectedPlayer ~= ""
+	local name = gifting and detectedPlayer or ""
 	local productName = (currentName ~= "") and currentName or "item"
-	if detectedPlayer ~= "" then
-		SMsg.Text = "You have successfully gifted " .. productName .. " to " .. name .. "."
+	if gifting then
+		-- currentName already has [GIFT] prefix from readItemData
+		SMsg.Text = "You have successfully purchased " .. productName .. " to " .. name .. "."
 	else
 		SMsg.Text = "You have successfully purchased " .. productName .. "."
 	end
 	Card.Visible = false
 	SuccessCard.Visible = true
 	slideUp(SuccessCard, SUCC_CENTER)
-	if detectedPlayer ~= "" then showGiftedText(name, productName) end
+	if gifting then showGiftedText(name, productName) end
 end
 
 -- HOOK BUY BUTTONS
