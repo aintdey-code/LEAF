@@ -15,25 +15,26 @@ local ITEM_TYPES = {
 	["3290152459"] = Enum.InfoType.Product,
 }
 
-local INFO_CACHE = {}
+local ITEM_ICONS = {
+	["1227013099"] = "rbxthumb://type=GamePass&id=1227013099&w=150&h=150",
+}
 
+local INFO_CACHE = {}
 local balance        = 66245
 local currentCost    = 0
 local currentName    = ""
 local guiOpen        = false
 local panelVisible   = false
-
+local purchaseActive = false
 local detectedPlayer = ""
 
-local C_CARD      = Color3.fromRGB(55,  55,  70)
+local C_CARD      = Color3.fromRGB(28, 28, 40)
 local C_WHITE     = Color3.fromRGB(255, 255, 255)
-local C_ICON      = Color3.fromRGB(55,  55,  70)
-local C_BTN_DARK  = Color3.fromRGB(55,  65,  160)
-local C_BTN_LIGHT = Color3.fromRGB(88,  101, 242)
+local C_BTN_DARK  = Color3.fromRGB(55,  65, 160)
+local C_BTN_LIGHT = Color3.fromRGB(88, 101, 242)
 
 local CARD_W      = 460
 local CARD_H      = 220
--- lowered: was -60, now -20 (slightly above center, between old and raised)
 local CARD_CENTER = UDim2.new(0.5, -CARD_W/2, 0.5, -CARD_H/2 - 20)
 local SUCC_W      = 460
 local SUCC_H      = 220
@@ -75,52 +76,37 @@ local function getItemInfo(itemId)
 	return nil
 end
 
-local SKIP = {
-	Template=true, UIListLayout=true, UIPadding=true,
-	UIGridLayout=true, UICorner=true, ScrollingFrame=true,
-	UIStroke=true, UIScale=true,
-}
-
+-- GIFT DETECTION
+-- PlayerSelected.Visible = false normally, true when player is selected to gift
 local function getGiftTargetPlayer()
-	local function safeFind(parent, name)
-		local ok, r = pcall(function() return parent:WaitForChild(name, 1) end)
-		return ok and r or nil
-	end
-	local g1 = safeFind(PlayerGui, "GiftPlayer")  if not g1 then return "" end
-	local g2 = safeFind(g1, "GiftPlayer")         if not g2 then return "" end
-	local mn = safeFind(g2, "Main")               if not mn then return "" end
-	local ls = safeFind(mn, "List")               if not ls then return "" end
-	for _, entry in ipairs(ls:GetChildren()) do
-		local ok, isGui = pcall(function() return entry:IsA("GuiObject") end)
-		if ok and isGui and not SKIP[entry.Name] then
-			local visOk, vis = pcall(function() return entry.Visible end)
-			if visOk and vis ~= false and entry:FindFirstChild("Gift") then
-				return entry.Name
-			end
-		end
+	local shop = PlayerGui:FindFirstChild("Shop")
+	if not shop then return "" end
+	local shopInner = shop:FindFirstChild("Shop")
+	if not shopInner then return "" end
+	local giftSelect = shopInner:FindFirstChild("GiftPlayerSelect")
+	if not giftSelect then return "" end
+	local playerSelected = giftSelect:FindFirstChild("PlayerSelected")
+	if not playerSelected then return "" end
+	local ok, vis = pcall(function() return playerSelected.Visible end)
+	if not ok or not vis then return "" end
+	local playerName = playerSelected:FindFirstChild("PlayerName")
+	if playerName and playerName.Text ~= "" then
+		return playerName.Text
 	end
 	return ""
 end
 
 local function isGifting()
-	-- Check ScreenGui enabled
-	local giftGui = PlayerGui:FindFirstChild("GiftPlayer")
-	if not giftGui then return false end
-	local okE, en = pcall(function() return giftGui.Enabled end)
-	if not okE or not en then return false end
-	-- Check inner frame visible
-	local giftFrame = giftGui:FindFirstChild("GiftPlayer")
-	if not giftFrame then return false end
-	local okV, vis = pcall(function() return giftFrame.Visible end)
-	if not okV or not vis then return false end
-	-- Must have a player actually selected
 	return getGiftTargetPlayer() ~= ""
 end
 
 local function readItemData(item)
 	local gifting = isGifting()
-	local iconLabel = item:FindFirstChild("Icon")
-	local image = iconLabel and iconLabel.Image or ""
+	local image = ITEM_ICONS[item.Name]
+	if not image then
+		local iconLabel = item:FindFirstChild("Icon")
+		image = iconLabel and iconLabel.Image or ""
+	end
 	local info = getItemInfo(item.Name)
 	if not info then
 		return { name = gifting and "[GIFT] Unknown" or "Unknown", price = 0, priceText = "Free", image = image }
@@ -143,7 +129,7 @@ BuyGui.Parent = PlayerGui
 local Backdrop = Instance.new("Frame")
 Backdrop.Size = UDim2.new(1,0,1,0)
 Backdrop.BackgroundColor3 = Color3.fromRGB(0,0,0)
-Backdrop.BackgroundTransparency = 0.52
+Backdrop.BackgroundTransparency = 0.3
 Backdrop.BorderSizePixel = 0
 Backdrop.ZIndex = 1
 Backdrop.Parent = BuyGui
@@ -196,9 +182,9 @@ CloseBtn.ZIndex = 4
 CloseBtn.Parent = Card
 
 local IconFrame = Instance.new("Frame")
-IconFrame.Size = UDim2.new(0,80,0,80)
-IconFrame.Position = UDim2.new(0,14,0,54)
-IconFrame.BackgroundColor3 = C_ICON
+IconFrame.Size = UDim2.new(0,100,0,100)
+IconFrame.Position = UDim2.new(0,14,0,52)
+IconFrame.BackgroundTransparency = 1
 IconFrame.BorderSizePixel = 0
 IconFrame.ZIndex = 3
 IconFrame.Parent = Card
@@ -215,12 +201,12 @@ IconImg.Parent = IconFrame
 
 local ItemName = Instance.new("TextLabel")
 ItemName.Name = "ItemName"
-ItemName.Size = UDim2.new(1,-110,0,20)
-ItemName.Position = UDim2.new(0,106,0,70)
+ItemName.Size = UDim2.new(1,-130,0,24)
+ItemName.Position = UDim2.new(0,126,0,68)
 ItemName.BackgroundTransparency = 1
 ItemName.Text = ""
 ItemName.Font = Enum.Font.GothamBold
-ItemName.TextSize = 15
+ItemName.TextSize = 18
 ItemName.TextColor3 = C_WHITE
 ItemName.TextXAlignment = Enum.TextXAlignment.Left
 ItemName.TextTruncate = Enum.TextTruncate.AtEnd
@@ -229,12 +215,12 @@ ItemName.Parent = Card
 
 local ItemPrice = Instance.new("TextLabel")
 ItemPrice.Name = "ItemPrice"
-ItemPrice.Size = UDim2.new(1,-110,0,20)
-ItemPrice.Position = UDim2.new(0,106,0,100)
+ItemPrice.Size = UDim2.new(1,-130,0,22)
+ItemPrice.Position = UDim2.new(0,126,0,98)
 ItemPrice.BackgroundTransparency = 1
 ItemPrice.Text = ""
 ItemPrice.Font = Enum.Font.Gotham
-ItemPrice.TextSize = 14
+ItemPrice.TextSize = 17
 ItemPrice.TextColor3 = C_WHITE
 ItemPrice.TextXAlignment = Enum.TextXAlignment.Left
 ItemPrice.ZIndex = 3
@@ -347,7 +333,7 @@ OKBtn.ZIndex = 12
 OKBtn.Parent = SuccessCard
 Instance.new("UICorner", OKBtn).CornerRadius = UDim.new(0, 10)
 
--- GREEN TEXT
+-- GREEN GIFTED TEXT
 local GiftedGui = Instance.new("ScreenGui")
 GiftedGui.Name = "GiftedNotif"
 GiftedGui.ResetOnSpawn = false
@@ -368,7 +354,7 @@ GiftedLbl.ZIndex = 50
 GiftedLbl.Visible = false
 GiftedLbl.Parent = GiftedGui
 
--- CONTROL PANEL — hidden by default, J key or .C to toggle, no tab button
+-- CONTROL PANEL
 local CtrlGui = Instance.new("ScreenGui")
 CtrlGui.Name = "ControlPanel"
 CtrlGui.ResetOnSpawn = false
@@ -435,7 +421,6 @@ local function togglePanel()
 	Panel.Visible = panelVisible
 end
 
--- CORE FUNCTIONS
 local function refreshBalance()
 	BalanceLbl.Text = "\u{E002} " .. fmt(balance)
 end
@@ -458,11 +443,6 @@ local function playSweep()
 	t.Completed:Connect(function() BuyBtn.Active = true end)
 end
 
-local function slideUp(frame, finalPos)
-	frame.Position = UDim2.new(finalPos.X.Scale, finalPos.X.Offset, finalPos.Y.Scale, finalPos.Y.Offset + 250)
-	TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = finalPos}):Play()
-end
-
 local function showGiftedText(playerName, productName)
 	GiftedLbl.Text = "You gifted " .. productName .. " to " .. playerName
 	GiftedLbl.Visible = true
@@ -473,7 +453,7 @@ local function showGiftedText(playerName, productName)
 end
 
 local function openGui(data)
-	if guiOpen then return end  -- FIXED: block if already open
+	if guiOpen then return end
 	guiOpen = true
 	currentCost = data.price
 	currentName = data.name
@@ -482,9 +462,9 @@ local function openGui(data)
 	ItemPrice.Text = data.priceText
 	refreshBalance()
 	SuccessCard.Visible = false
+	Card.Position = CARD_CENTER
 	Card.Visible = true
 	BuyGui.Enabled = true
-	slideUp(Card, CARD_CENTER)
 	playSweep()
 	OKBtn.BackgroundColor3 = C_BTN_LIGHT
 end
@@ -496,25 +476,20 @@ local function closeGui()
 	SuccessCard.Visible = false
 end
 
--- Track active purchase to prevent spam
-local purchaseActive = false
-
 local function showSuccess()
 	if purchaseActive then return end
 	purchaseActive = true
 	local gifting = detectedPlayer ~= ""
-	local name = gifting and detectedPlayer or ""
 	local productName = (currentName ~= "") and currentName or "item"
 	if gifting then
-		-- currentName already has [GIFT] prefix from readItemData
-		SMsg.Text = "You have successfully purchased " .. productName .. " to " .. name .. "."
+		SMsg.Text = "You have successfully gifted " .. productName .. " to " .. detectedPlayer .. "."
 	else
 		SMsg.Text = "You have successfully purchased " .. productName .. "."
 	end
 	Card.Visible = false
+	SuccessCard.Position = SUCC_CENTER
 	SuccessCard.Visible = true
-	slideUp(SuccessCard, SUCC_CENTER)
-	if gifting then showGiftedText(name, productName) end
+	if gifting then showGiftedText(detectedPlayer, productName) end
 end
 
 -- HOOK BUY BUTTONS
@@ -527,7 +502,6 @@ local function hookBuyButton(btn, item)
 	btn.Active = false
 	btn.AutoButtonColor = false
 
-	-- mobile safe: track start pos, cancel if dragged more than 20px
 	local pressing = false
 	local startPos = nil
 
@@ -543,9 +517,7 @@ local function hookBuyButton(btn, item)
 		if pressing and startPos and (input.UserInputType == Enum.UserInputType.MouseMovement
 			or input.UserInputType == Enum.UserInputType.Touch) then
 			local dist = (Vector2.new(input.Position.X, input.Position.Y) - startPos).Magnitude
-			if dist > 20 then
-				pressing = false
-			end
+			if dist > 20 then pressing = false end
 		end
 	end)
 
@@ -612,10 +584,9 @@ SCloseBtn.MouseButton1Click:Connect(closeGui)
 
 local function onBuyClick()
 	if not BuyBtn.Active then return end
-	-- FIXED: block if already triggered (prevents spam clicking Buy button in popup)
 	if not guiOpen then return end
 	detectedPlayer = getGiftTargetPlayer()
-	BuyBtn.Active = false  -- disable immediately to prevent double trigger
+	BuyBtn.Active = false
 	task.delay(1.4, playPurchaseSound)
 	task.delay(1.5, showSuccess)
 end
@@ -628,7 +599,7 @@ end)
 local function onOKClick()
 	OKBtn.BackgroundColor3 = C_BTN_DARK
 	deductBalance()
-	purchaseActive = false  -- reset so next purchase works
+	purchaseActive = false
 	task.delay(0.15, function()
 		closeGui()
 		OKBtn.BackgroundColor3 = C_BTN_LIGHT
@@ -650,18 +621,13 @@ BalanceBox.FocusLost:Connect(function()
 	end
 end)
 
--- J key or .C to toggle panel
 UserInputService.InputBegan:Connect(function(inp, gp)
 	if gp then return end
-	if inp.KeyCode == Enum.KeyCode.J then
-		togglePanel()
-	end
+	if inp.KeyCode == Enum.KeyCode.J then togglePanel() end
 end)
 
 LocalPlayer.Chatted:Connect(function(msg)
-	if msg:lower() == ".c" then
-		togglePanel()
-	end
+	if msg:lower() == ".c" then togglePanel() end
 end)
 
 refreshBalance()
