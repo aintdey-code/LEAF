@@ -1,46 +1,23 @@
-local Players            = game:GetService("Players")
-local UserInputService   = game:GetService("UserInputService")
-local TweenService       = game:GetService("TweenService")
-local Debris             = game:GetService("Debris")
-local MarketplaceService = game:GetService("MarketplaceService")
+local Players      = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Debris       = game:GetService("Debris")
+local CoreGui      = game:GetService("CoreGui")
+local player       = Players.LocalPlayer
+local playerGui    = player:WaitForChild("PlayerGui")
 
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
+local ROBUX_CHAR = utf8.char(0xE002)
 
-local ITEM_TYPES = {
-	["1227013099"] = Enum.InfoType.GamePass,
-	["3290152611"] = Enum.InfoType.Product,
-	["3290152552"] = Enum.InfoType.Product,
-	["3290152513"] = Enum.InfoType.Product,
-	["3290152459"] = Enum.InfoType.Product,
-}
-
-local ITEM_ICONS = {
-	["1227013099"] = "rbxthumb://type=GamePass&id=1227013099&w=150&h=150",
-}
-
-local INFO_CACHE = {}
-local balance        = 66245
-local currentCost    = 0
-local currentName    = ""
-local guiOpen        = false
-local panelVisible   = false
-local purchaseActive = false
-local detectedPlayer = ""
+-- balance can be changed via control panel
+local balance    = 66245
+local panelVisible = false
+local PANEL_W    = 210
+local PANEL_H    = 120
 
 local C_CARD      = Color3.fromRGB(28, 28, 40)
 local C_WHITE     = Color3.fromRGB(255, 255, 255)
 local C_BTN_DARK  = Color3.fromRGB(55,  65, 160)
 local C_BTN_LIGHT = Color3.fromRGB(88, 101, 242)
-
-local CARD_W      = 460
-local CARD_H      = 220
-local CARD_CENTER = UDim2.new(0.5, -CARD_W/2, 0.5, -CARD_H/2 - 20)
-local SUCC_W      = 460
-local SUCC_H      = 220
-local SUCC_CENTER = UDim2.new(0.5, -SUCC_W/2, 0.5, -SUCC_H/2 - 20)
-local PANEL_W     = 210
-local PANEL_H     = 120
 
 local function fmt(n)
 	local s = tostring(math.floor(n))
@@ -53,569 +30,75 @@ local function fmt(n)
 	return r
 end
 
-local function playPurchaseSound()
-	local snd = Instance.new("Sound")
-	snd.SoundId = "rbxassetid://89446320629366"
-	snd.Volume  = 1
-	snd.Parent  = workspace
-	snd:Play()
-	Debris:AddItem(snd, 10)
-end
-
-local function getItemInfo(itemId)
-	if INFO_CACHE[itemId] then return INFO_CACHE[itemId] end
-	local infoType = ITEM_TYPES[itemId]
-	if not infoType then return nil end
-	local ok, info = pcall(function()
-		return MarketplaceService:GetProductInfo(tonumber(itemId), infoType)
-	end)
-	if ok and info then
-		INFO_CACHE[itemId] = info
-		return info
-	end
-	return nil
-end
-
--- GIFT DETECTION
--- PlayerSelected.Visible = false normally, true when player is selected to gift
-local function getGiftTargetPlayer()
-	local shop = PlayerGui:FindFirstChild("Shop")
-	if not shop then return "" end
-	local shopInner = shop:FindFirstChild("Shop")
-	if not shopInner then return "" end
-	local giftSelect = shopInner:FindFirstChild("GiftPlayerSelect")
-	if not giftSelect then return "" end
-	local playerSelected = giftSelect:FindFirstChild("PlayerSelected")
-	if not playerSelected then return "" end
-	local ok, vis = pcall(function() return playerSelected.Visible end)
-	if not ok or not vis then return "" end
-	local playerName = playerSelected:FindFirstChild("PlayerName")
-	if playerName and playerName.Text ~= "" then
-		return playerName.Text
-	end
-	return ""
-end
-
-local function isGifting()
-	return getGiftTargetPlayer() ~= ""
-end
-
-local function readItemData(item)
-	local gifting = isGifting()
-	local image = ITEM_ICONS[item.Name]
-	if not image then
-		local iconLabel = item:FindFirstChild("Icon")
-		image = iconLabel and iconLabel.Image or ""
-	end
-	local info = getItemInfo(item.Name)
-	if not info then
-		return { name = gifting and "[GIFT] Unknown" or "Unknown", price = 0, priceText = "Free", image = image }
-	end
-	local baseName  = info.Name or "Unknown"
-	local price     = info.PriceInRobux or 0
-	local name      = gifting and ("[GIFT] " .. baseName) or baseName
-	local priceText = price > 0 and ("\u{E002} " .. fmt(price)) or "Free"
-	return { name = name, price = price, priceText = priceText, image = image }
-end
-
--- BUY GUI
-local BuyGui = Instance.new("ScreenGui")
-BuyGui.Name = "BuyItemGui"
-BuyGui.ResetOnSpawn = false
-BuyGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-BuyGui.Enabled = false
-BuyGui.Parent = PlayerGui
-
-local Backdrop = Instance.new("Frame")
-Backdrop.Size = UDim2.new(1,0,1,0)
-Backdrop.BackgroundColor3 = Color3.fromRGB(0,0,0)
-Backdrop.BackgroundTransparency = 0.3
-Backdrop.BorderSizePixel = 0
-Backdrop.ZIndex = 1
-Backdrop.Parent = BuyGui
-
-local Card = Instance.new("Frame")
-Card.Name = "Card"
-Card.Size = UDim2.new(0, CARD_W, 0, CARD_H)
-Card.Position = CARD_CENTER
-Card.BackgroundColor3 = C_CARD
-Card.BorderSizePixel = 0
-Card.ZIndex = 2
-Card.Parent = BuyGui
-Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 12)
-
-local TitleLbl = Instance.new("TextLabel")
-TitleLbl.Size = UDim2.new(0,150,0,50)
-TitleLbl.Position = UDim2.new(0,18,0,0)
-TitleLbl.BackgroundTransparency = 1
-TitleLbl.Text = "Buy item"
-TitleLbl.Font = Enum.Font.GothamBold
-TitleLbl.TextSize = 20
-TitleLbl.TextColor3 = C_WHITE
-TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
-TitleLbl.ZIndex = 3
-TitleLbl.Parent = Card
-
-local BalanceLbl = Instance.new("TextLabel")
-BalanceLbl.Name = "BalanceLbl"
-BalanceLbl.Size = UDim2.new(0,130,0,50)
-BalanceLbl.Position = UDim2.new(1,-182,0,0)
-BalanceLbl.BackgroundTransparency = 1
-BalanceLbl.Font = Enum.Font.GothamBold
-BalanceLbl.TextSize = 16
-BalanceLbl.TextColor3 = C_WHITE
-BalanceLbl.TextXAlignment = Enum.TextXAlignment.Right
-BalanceLbl.ZIndex = 3
-BalanceLbl.Parent = Card
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Name = "CloseBtn"
-CloseBtn.Size = UDim2.new(0,40,0,50)
-CloseBtn.Position = UDim2.new(1,-44,0,0)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "X"
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 18
-CloseBtn.TextColor3 = C_WHITE
-CloseBtn.BorderSizePixel = 0
-CloseBtn.ZIndex = 4
-CloseBtn.Parent = Card
-
-local IconFrame = Instance.new("Frame")
-IconFrame.Size = UDim2.new(0,100,0,100)
-IconFrame.Position = UDim2.new(0,14,0,52)
-IconFrame.BackgroundTransparency = 1
-IconFrame.BorderSizePixel = 0
-IconFrame.ZIndex = 3
-IconFrame.Parent = Card
-Instance.new("UICorner", IconFrame).CornerRadius = UDim.new(0, 8)
-
-local IconImg = Instance.new("ImageLabel")
-IconImg.Name = "IconImg"
-IconImg.Size = UDim2.new(1,0,1,0)
-IconImg.BackgroundTransparency = 1
-IconImg.Image = ""
-IconImg.ScaleType = Enum.ScaleType.Fit
-IconImg.ZIndex = 4
-IconImg.Parent = IconFrame
-
-local ItemName = Instance.new("TextLabel")
-ItemName.Name = "ItemName"
-ItemName.Size = UDim2.new(1,-130,0,24)
-ItemName.Position = UDim2.new(0,126,0,68)
-ItemName.BackgroundTransparency = 1
-ItemName.Text = ""
-ItemName.Font = Enum.Font.GothamBold
-ItemName.TextSize = 18
-ItemName.TextColor3 = C_WHITE
-ItemName.TextXAlignment = Enum.TextXAlignment.Left
-ItemName.TextTruncate = Enum.TextTruncate.AtEnd
-ItemName.ZIndex = 3
-ItemName.Parent = Card
-
-local ItemPrice = Instance.new("TextLabel")
-ItemPrice.Name = "ItemPrice"
-ItemPrice.Size = UDim2.new(1,-130,0,22)
-ItemPrice.Position = UDim2.new(0,126,0,98)
-ItemPrice.BackgroundTransparency = 1
-ItemPrice.Text = ""
-ItemPrice.Font = Enum.Font.Gotham
-ItemPrice.TextSize = 17
-ItemPrice.TextColor3 = C_WHITE
-ItemPrice.TextXAlignment = Enum.TextXAlignment.Left
-ItemPrice.ZIndex = 3
-ItemPrice.Parent = Card
-
-local BuyBtn = Instance.new("TextButton")
-BuyBtn.Name = "BuyBtn"
-BuyBtn.Size = UDim2.new(1,-28,0,48)
-BuyBtn.Position = UDim2.new(0,14,0,158)
-BuyBtn.BackgroundColor3 = C_BTN_DARK
-BuyBtn.Text = ""
-BuyBtn.BorderSizePixel = 0
-BuyBtn.AutoButtonColor = false
-BuyBtn.Active = false
-BuyBtn.ZIndex = 3
-BuyBtn.Parent = Card
-Instance.new("UICorner", BuyBtn).CornerRadius = UDim.new(0, 10)
-
-local SweepCover = Instance.new("Frame")
-SweepCover.Name = "SweepCover"
-SweepCover.Size = UDim2.new(0,0,1,0)
-SweepCover.BackgroundColor3 = C_BTN_LIGHT
-SweepCover.BorderSizePixel = 0
-SweepCover.ZIndex = 4
-SweepCover.Parent = BuyBtn
-Instance.new("UICorner", SweepCover).CornerRadius = UDim.new(0, 10)
-
-local BuyLbl = Instance.new("TextLabel")
-BuyLbl.Size = UDim2.new(1,0,1,0)
-BuyLbl.BackgroundTransparency = 1
-BuyLbl.Text = "Buy"
-BuyLbl.Font = Enum.Font.GothamBold
-BuyLbl.TextSize = 18
-BuyLbl.TextColor3 = C_WHITE
-BuyLbl.ZIndex = 5
-BuyLbl.Parent = BuyBtn
-
--- SUCCESS POPUP
-local SuccessCard = Instance.new("Frame")
-SuccessCard.Name = "SuccessCard"
-SuccessCard.Size = UDim2.new(0, SUCC_W, 0, SUCC_H)
-SuccessCard.Position = SUCC_CENTER
-SuccessCard.BackgroundColor3 = C_CARD
-SuccessCard.BorderSizePixel = 0
-SuccessCard.Visible = false
-SuccessCard.ZIndex = 10
-SuccessCard.Parent = BuyGui
-Instance.new("UICorner", SuccessCard).CornerRadius = UDim.new(0, 12)
-
-local STitleLbl = Instance.new("TextLabel")
-STitleLbl.Size = UDim2.new(1,-52,0,50)
-STitleLbl.Position = UDim2.new(0,18,0,0)
-STitleLbl.BackgroundTransparency = 1
-STitleLbl.Text = "Purchase completed"
-STitleLbl.Font = Enum.Font.GothamBold
-STitleLbl.TextSize = 19
-STitleLbl.TextColor3 = C_WHITE
-STitleLbl.TextXAlignment = Enum.TextXAlignment.Left
-STitleLbl.ZIndex = 11
-STitleLbl.Parent = SuccessCard
-
-local SCloseBtn = Instance.new("TextButton")
-SCloseBtn.Name = "SCloseBtn"
-SCloseBtn.Size = UDim2.new(0,40,0,50)
-SCloseBtn.Position = UDim2.new(1,-44,0,0)
-SCloseBtn.BackgroundTransparency = 1
-SCloseBtn.Text = "X"
-SCloseBtn.Font = Enum.Font.GothamBold
-SCloseBtn.TextSize = 18
-SCloseBtn.TextColor3 = C_WHITE
-SCloseBtn.BorderSizePixel = 0
-SCloseBtn.ZIndex = 12
-SCloseBtn.Parent = SuccessCard
-
-local CheckImg = Instance.new("ImageLabel")
-CheckImg.Size = UDim2.new(0,60,0,60)
-CheckImg.Position = UDim2.new(0.5,-30,0,44)
-CheckImg.BackgroundTransparency = 1
-CheckImg.Image = "rbxassetid://135084016839600"
-CheckImg.ScaleType = Enum.ScaleType.Fit
-CheckImg.ZIndex = 12
-CheckImg.Parent = SuccessCard
-
-local SMsg = Instance.new("TextLabel")
-SMsg.Name = "SMsg"
-SMsg.Size = UDim2.new(1,-36,0,32)
-SMsg.Position = UDim2.new(0,18,0,116)
-SMsg.BackgroundTransparency = 1
-SMsg.Text = ""
-SMsg.Font = Enum.Font.Gotham
-SMsg.TextSize = 14
-SMsg.TextColor3 = C_WHITE
-SMsg.TextWrapped = true
-SMsg.TextYAlignment = Enum.TextYAlignment.Center
-SMsg.ZIndex = 12
-SMsg.Parent = SuccessCard
-
-local OKBtn = Instance.new("TextButton")
-OKBtn.Name = "OKBtn"
-OKBtn.Size = UDim2.new(1,-28,0,48)
-OKBtn.Position = UDim2.new(0,14,0,158)
-OKBtn.BackgroundColor3 = C_BTN_LIGHT
-OKBtn.Text = "OK"
-OKBtn.Font = Enum.Font.GothamBold
-OKBtn.TextSize = 18
-OKBtn.TextColor3 = C_WHITE
-OKBtn.BorderSizePixel = 0
-OKBtn.AutoButtonColor = false
-OKBtn.ZIndex = 12
-OKBtn.Parent = SuccessCard
-Instance.new("UICorner", OKBtn).CornerRadius = UDim.new(0, 10)
-
--- GREEN GIFTED TEXT
-local GiftedGui = Instance.new("ScreenGui")
-GiftedGui.Name = "GiftedNotif"
-GiftedGui.ResetOnSpawn = false
-GiftedGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-GiftedGui.Parent = PlayerGui
-
-local GiftedLbl = Instance.new("TextLabel")
-GiftedLbl.Size = UDim2.new(1,0,0,50)
-GiftedLbl.Position = UDim2.new(0,0,1,-160)
-GiftedLbl.BackgroundTransparency = 1
-GiftedLbl.Text = ""
-GiftedLbl.Font = Enum.Font.GothamBold
-GiftedLbl.TextSize = 26
-GiftedLbl.TextColor3 = Color3.fromRGB(0,220,80)
-GiftedLbl.TextXAlignment = Enum.TextXAlignment.Center
-GiftedLbl.TextStrokeTransparency = 0.4
-GiftedLbl.ZIndex = 50
-GiftedLbl.Visible = false
-GiftedLbl.Parent = GiftedGui
-
 -- CONTROL PANEL
 local CtrlGui = Instance.new("ScreenGui")
-CtrlGui.Name = "ControlPanel"
+CtrlGui.Name         = "ControlPanel"
 CtrlGui.ResetOnSpawn = false
-CtrlGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-CtrlGui.Parent = PlayerGui
+CtrlGui.Parent       = playerGui
 
 local Panel = Instance.new("Frame")
-Panel.Name = "Panel"
-Panel.Size = UDim2.new(0, PANEL_W, 0, PANEL_H)
-Panel.Position = UDim2.new(0, 10, 0.5, -PANEL_H/2)
+Panel.Name             = "Panel"
+Panel.Size             = UDim2.new(0, PANEL_W, 0, PANEL_H)
+Panel.Position         = UDim2.new(0, 10, 0.5, -PANEL_H/2)
 Panel.BackgroundColor3 = Color3.fromRGB(28,28,42)
-Panel.BorderSizePixel = 0
-Panel.ZIndex = 20
-Panel.Visible = false
-Panel.Parent = CtrlGui
+Panel.BorderSizePixel  = 0
+Panel.ZIndex           = 20
+Panel.Visible          = false
+Panel.Parent           = CtrlGui
 Instance.new("UICorner", Panel).CornerRadius = UDim.new(0, 10)
 
 local PTBar = Instance.new("Frame")
-PTBar.Size = UDim2.new(1,0,0,38)
+PTBar.Size             = UDim2.new(1,0,0,38)
 PTBar.BackgroundColor3 = Color3.fromRGB(45,45,68)
-PTBar.BorderSizePixel = 0
-PTBar.ZIndex = 21
-PTBar.Parent = Panel
+PTBar.BorderSizePixel  = 0
+PTBar.ZIndex           = 21
+PTBar.Parent           = Panel
 Instance.new("UICorner", PTBar).CornerRadius = UDim.new(0, 10)
 
 local PTLbl = Instance.new("TextLabel")
-PTLbl.Size = UDim2.new(1,0,1,0)
+PTLbl.Size                   = UDim2.new(1,0,1,0)
 PTLbl.BackgroundTransparency = 1
-PTLbl.Text = "Control Panel"
-PTLbl.Font = Enum.Font.GothamBold
-PTLbl.TextSize = 13
-PTLbl.TextColor3 = C_WHITE
-PTLbl.ZIndex = 22
-PTLbl.Parent = PTBar
+PTLbl.Text                   = "Control Panel"
+PTLbl.Font                   = Enum.Font.GothamBold
+PTLbl.TextSize               = 13
+PTLbl.TextColor3             = C_WHITE
+PTLbl.ZIndex                 = 22
+PTLbl.Parent                 = PTBar
 
 local BalLbl = Instance.new("TextLabel")
-BalLbl.Size = UDim2.new(1,-16,0,16)
-BalLbl.Position = UDim2.new(0,8,0,44)
+BalLbl.Size                   = UDim2.new(1,-16,0,16)
+BalLbl.Position               = UDim2.new(0,8,0,44)
 BalLbl.BackgroundTransparency = 1
-BalLbl.Text = "Balance"
-BalLbl.Font = Enum.Font.Gotham
-BalLbl.TextSize = 11
-BalLbl.TextColor3 = Color3.fromRGB(175,175,200)
-BalLbl.TextXAlignment = Enum.TextXAlignment.Left
-BalLbl.ZIndex = 22
-BalLbl.Parent = Panel
+BalLbl.Text                   = "Balance"
+BalLbl.Font                   = Enum.Font.Gotham
+BalLbl.TextSize               = 11
+BalLbl.TextColor3             = Color3.fromRGB(175,175,200)
+BalLbl.TextXAlignment         = Enum.TextXAlignment.Left
+BalLbl.ZIndex                 = 22
+BalLbl.Parent                 = Panel
 
 local BalanceBox = Instance.new("TextBox")
-BalanceBox.Size = UDim2.new(1,-16,0,28)
-BalanceBox.Position = UDim2.new(0,8,0,61)
+BalanceBox.Size             = UDim2.new(1,-16,0,28)
+BalanceBox.Position         = UDim2.new(0,8,0,61)
 BalanceBox.BackgroundColor3 = Color3.fromRGB(42,42,62)
-BalanceBox.Text = tostring(balance)
-BalanceBox.Font = Enum.Font.Gotham
-BalanceBox.TextSize = 13
-BalanceBox.TextColor3 = C_WHITE
-BalanceBox.PlaceholderColor3 = Color3.fromRGB(110,110,130)
-BalanceBox.BorderSizePixel = 0
-BalanceBox.ZIndex = 22
-BalanceBox.Parent = Panel
+BalanceBox.Text             = tostring(balance)
+BalanceBox.Font             = Enum.Font.Gotham
+BalanceBox.TextSize         = 13
+BalanceBox.TextColor3       = C_WHITE
+BalanceBox.BorderSizePixel  = 0
+BalanceBox.ZIndex           = 22
+BalanceBox.Parent           = Panel
 Instance.new("UICorner", BalanceBox).CornerRadius = UDim.new(0, 5)
 
 local function togglePanel()
-	panelVisible = not panelVisible
+	panelVisible  = not panelVisible
 	Panel.Visible = panelVisible
 end
-
-local function refreshBalance()
-	BalanceLbl.Text = "\u{E002} " .. fmt(balance)
-end
-
-local function deductBalance()
-	if balance < currentCost then return false end
-	balance = balance - currentCost
-	refreshBalance()
-	BalanceBox.Text = tostring(balance)
-	return true
-end
-
-local function playSweep()
-	BuyBtn.Active = false
-	BuyBtn.BackgroundColor3 = C_BTN_DARK
-	SweepCover.BackgroundColor3 = C_BTN_LIGHT
-	SweepCover.Size = UDim2.new(0,0,1,0)
-	local t = TweenService:Create(SweepCover, TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {Size = UDim2.new(1,0,1,0)})
-	t:Play()
-	t.Completed:Connect(function() BuyBtn.Active = true end)
-end
-
-local function showGiftedText(playerName, productName)
-	GiftedLbl.Text = "You gifted " .. productName .. " to " .. playerName
-	GiftedLbl.Visible = true
-	task.delay(5, function()
-		GiftedLbl.Visible = false
-		GiftedLbl.Text = ""
-	end)
-end
-
-local function openGui(data)
-	if guiOpen then return end
-	guiOpen = true
-	currentCost = data.price
-	currentName = data.name
-	IconImg.Image = data.image
-	ItemName.Text = data.name
-	ItemPrice.Text = data.priceText
-	refreshBalance()
-	SuccessCard.Visible = false
-	Card.Position = CARD_CENTER
-	Card.Visible = true
-	BuyGui.Enabled = true
-	playSweep()
-	OKBtn.BackgroundColor3 = C_BTN_LIGHT
-end
-
-local function closeGui()
-	guiOpen = false
-	BuyGui.Enabled = false
-	Card.Visible = false
-	SuccessCard.Visible = false
-end
-
-local function showSuccess()
-	if purchaseActive then return end
-	purchaseActive = true
-	local gifting = detectedPlayer ~= ""
-	local productName = (currentName ~= "") and currentName or "item"
-	if gifting then
-		SMsg.Text = "You have successfully gifted " .. productName .. " to " .. detectedPlayer .. "."
-	else
-		SMsg.Text = "You have successfully purchased " .. productName .. "."
-	end
-	Card.Visible = false
-	SuccessCard.Position = SUCC_CENTER
-	SuccessCard.Visible = true
-	if gifting then showGiftedText(detectedPlayer, productName) end
-end
-
--- HOOK BUY BUTTONS
-local hookedButtons = {}
-
-local function hookBuyButton(btn, item)
-	if hookedButtons[btn] then return end
-	if not ITEM_TYPES[item.Name] then return end
-	hookedButtons[btn] = true
-	btn.Active = false
-	btn.AutoButtonColor = false
-
-	local pressing = false
-	local startPos = nil
-
-	btn.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-			or input.UserInputType == Enum.UserInputType.Touch then
-			pressing = true
-			startPos = Vector2.new(input.Position.X, input.Position.Y)
-		end
-	end)
-
-	btn.InputChanged:Connect(function(input)
-		if pressing and startPos and (input.UserInputType == Enum.UserInputType.MouseMovement
-			or input.UserInputType == Enum.UserInputType.Touch) then
-			local dist = (Vector2.new(input.Position.X, input.Position.Y) - startPos).Magnitude
-			if dist > 20 then pressing = false end
-		end
-	end)
-
-	btn.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1
-			or input.UserInputType == Enum.UserInputType.Touch then
-			if pressing then
-				pressing = false
-				task.spawn(function()
-					local data = readItemData(item)
-					openGui(data)
-				end)
-			end
-			pressing = false
-			startPos = nil
-		end
-	end)
-end
-
-local function hookAll(shopGui)
-	task.spawn(function()
-		local ok1, shopFrame = pcall(function() return shopGui:WaitForChild("Shop", 10) end)
-		if not ok1 or not shopFrame then return end
-		local ok2, content = pcall(function() return shopFrame:WaitForChild("Content", 10) end)
-		if not ok2 or not content then return end
-		local ok3, list = pcall(function() return content:WaitForChild("List", 10) end)
-		if not ok3 or not list then return end
-
-		local function hookItem(item)
-			for _, child in ipairs(item:GetDescendants()) do
-				if child:IsA("TextButton") or child:IsA("ImageButton") then
-					hookBuyButton(child, item)
-				end
-			end
-			item.DescendantAdded:Connect(function(child)
-				if child:IsA("TextButton") or child:IsA("ImageButton") then
-					hookBuyButton(child, item)
-				end
-			end)
-		end
-
-		local function hookSubList(subList)
-			for _, item in ipairs(subList:GetChildren()) do hookItem(item) end
-			subList.ChildAdded:Connect(hookItem)
-		end
-
-		for _, subList in ipairs(list:GetChildren()) do
-			if subList:IsA("GuiObject") then hookSubList(subList) end
-		end
-		list.ChildAdded:Connect(function(subList)
-			if subList:IsA("GuiObject") then hookSubList(subList) end
-		end)
-	end)
-end
-
-local existing = PlayerGui:FindFirstChild("Shop")
-if existing then hookAll(existing) end
-PlayerGui.ChildAdded:Connect(function(child)
-	if child.Name == "Shop" then hookAll(child) end
-end)
-
-CloseBtn.MouseButton1Click:Connect(closeGui)
-SCloseBtn.MouseButton1Click:Connect(closeGui)
-
-local function onBuyClick()
-	if not BuyBtn.Active then return end
-	if not guiOpen then return end
-	detectedPlayer = getGiftTargetPlayer()
-	BuyBtn.Active = false
-	task.delay(1.4, playPurchaseSound)
-	task.delay(1.5, showSuccess)
-end
-
-BuyBtn.MouseButton1Click:Connect(onBuyClick)
-BuyBtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch then onBuyClick() end
-end)
-
-local function onOKClick()
-	OKBtn.BackgroundColor3 = C_BTN_DARK
-	deductBalance()
-	purchaseActive = false
-	task.delay(0.15, function()
-		closeGui()
-		OKBtn.BackgroundColor3 = C_BTN_LIGHT
-	end)
-end
-
-OKBtn.MouseButton1Click:Connect(onOKClick)
-OKBtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch then onOKClick() end
-end)
 
 BalanceBox.FocusLost:Connect(function()
 	local v = tonumber(BalanceBox.Text)
 	if v and v >= 0 then
 		balance = math.floor(v)
-		refreshBalance()
 	else
 		BalanceBox.Text = tostring(balance)
 	end
@@ -626,8 +109,441 @@ UserInputService.InputBegan:Connect(function(inp, gp)
 	if inp.KeyCode == Enum.KeyCode.J then togglePanel() end
 end)
 
-LocalPlayer.Chatted:Connect(function(msg)
+player.Chatted:Connect(function(msg)
 	if msg:lower() == ".c" then togglePanel() end
 end)
 
-refreshBalance()
+-- OUR GUI (replaces their createBuyUI)
+local function createBuyUI(itemName, itemPrice, itemImageId, giftedTo)
+	local price = tonumber((tostring(itemPrice):gsub("[^%d]", ""))) or 0
+
+	-- destroy any existing popup
+	if CoreGui:FindFirstChild("BuyItemGUI") then
+		CoreGui.BuyItemGUI:Destroy()
+	end
+
+	local CARD_W = 460
+	local CARD_H = 220
+	local SUCC_W = 460
+	local SUCC_H = 220
+
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name           = "BuyItemGUI"
+	screenGui.ResetOnSpawn   = false
+	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screenGui.IgnoreGuiInset = true
+	screenGui.DisplayOrder   = 999
+	screenGui.Parent         = CoreGui
+
+	local Backdrop = Instance.new("Frame", screenGui)
+	Backdrop.Size                   = UDim2.new(1,0,1,0)
+	Backdrop.BackgroundColor3       = Color3.fromRGB(0,0,0)
+	Backdrop.BackgroundTransparency = 0.3
+	Backdrop.BorderSizePixel        = 0
+	Backdrop.ZIndex                 = 1
+
+	local Card = Instance.new("Frame", screenGui)
+	Card.Name             = "Card"
+	Card.Size             = UDim2.new(0, CARD_W, 0, CARD_H)
+	Card.AnchorPoint      = Vector2.new(0.5, 0.5)
+	Card.Position         = UDim2.new(0.5, 0, -0.3, 0)
+	Card.BackgroundColor3 = C_CARD
+	Card.BorderSizePixel  = 0
+	Card.ZIndex           = 2
+	Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 12)
+
+	local TitleLbl = Instance.new("TextLabel", Card)
+	TitleLbl.Size                   = UDim2.new(0,150,0,50)
+	TitleLbl.Position               = UDim2.new(0,18,0,0)
+	TitleLbl.BackgroundTransparency = 1
+	TitleLbl.Text                   = "Buy item"
+	TitleLbl.Font                   = Enum.Font.GothamBold
+	TitleLbl.TextSize               = 20
+	TitleLbl.TextColor3             = C_WHITE
+	TitleLbl.TextXAlignment         = Enum.TextXAlignment.Left
+	TitleLbl.ZIndex                 = 3
+
+	local BalanceLbl = Instance.new("TextLabel", Card)
+	BalanceLbl.Size                   = UDim2.new(0,130,0,50)
+	BalanceLbl.Position               = UDim2.new(1,-182,0,0)
+	BalanceLbl.BackgroundTransparency = 1
+	BalanceLbl.Font                   = Enum.Font.GothamBold
+	BalanceLbl.TextSize               = 16
+	BalanceLbl.TextColor3             = C_WHITE
+	BalanceLbl.TextXAlignment         = Enum.TextXAlignment.Right
+	BalanceLbl.ZIndex                 = 3
+	BalanceLbl.Text                   = ROBUX_CHAR .. " " .. fmt(balance)
+
+	local CloseBtn = Instance.new("TextButton", Card)
+	CloseBtn.Size                   = UDim2.new(0,40,0,50)
+	CloseBtn.Position               = UDim2.new(1,-44,0,0)
+	CloseBtn.BackgroundTransparency = 1
+	CloseBtn.Text                   = "X"
+	CloseBtn.Font                   = Enum.Font.GothamBold
+	CloseBtn.TextSize               = 18
+	CloseBtn.TextColor3             = C_WHITE
+	CloseBtn.BorderSizePixel        = 0
+	CloseBtn.ZIndex                 = 4
+
+	local IconFrame = Instance.new("Frame", Card)
+	IconFrame.Size                   = UDim2.new(0,100,0,100)
+	IconFrame.Position               = UDim2.new(0,14,0,52)
+	IconFrame.BackgroundTransparency = 1
+	IconFrame.BorderSizePixel        = 0
+	IconFrame.ZIndex                 = 3
+	Instance.new("UICorner", IconFrame).CornerRadius = UDim.new(0, 8)
+
+	local IconImg = Instance.new("ImageLabel", IconFrame)
+	IconImg.Size                   = UDim2.new(1,0,1,0)
+	IconImg.BackgroundTransparency = 1
+	IconImg.Image                  = itemImageId or ""
+	IconImg.ScaleType              = Enum.ScaleType.Fit
+	IconImg.ZIndex                 = 4
+
+	local ItemNameLbl = Instance.new("TextLabel", Card)
+	ItemNameLbl.Size                   = UDim2.new(1,-130,0,24)
+	ItemNameLbl.Position               = UDim2.new(0,126,0,68)
+	ItemNameLbl.BackgroundTransparency = 1
+	ItemNameLbl.Text                   = giftedTo and ("[GIFT] "..itemName) or itemName
+	ItemNameLbl.Font                   = Enum.Font.GothamBold
+	ItemNameLbl.TextSize               = 18
+	ItemNameLbl.TextColor3             = C_WHITE
+	ItemNameLbl.TextXAlignment         = Enum.TextXAlignment.Left
+	ItemNameLbl.TextTruncate           = Enum.TextTruncate.AtEnd
+	ItemNameLbl.ZIndex                 = 3
+
+	local ItemPriceLbl = Instance.new("TextLabel", Card)
+	ItemPriceLbl.Size                   = UDim2.new(1,-130,0,22)
+	ItemPriceLbl.Position               = UDim2.new(0,126,0,98)
+	ItemPriceLbl.BackgroundTransparency = 1
+	ItemPriceLbl.Text                   = price > 0 and (ROBUX_CHAR .. " " .. fmt(price)) or "Free"
+	ItemPriceLbl.Font                   = Enum.Font.Gotham
+	ItemPriceLbl.TextSize               = 17
+	ItemPriceLbl.TextColor3             = C_WHITE
+	ItemPriceLbl.TextXAlignment         = Enum.TextXAlignment.Left
+	ItemPriceLbl.ZIndex                 = 3
+
+	local BuyBtn = Instance.new("TextButton", Card)
+	BuyBtn.Size             = UDim2.new(1,-28,0,48)
+	BuyBtn.Position         = UDim2.new(0,14,0,158)
+	BuyBtn.BackgroundColor3 = C_BTN_DARK
+	BuyBtn.Text             = ""
+	BuyBtn.BorderSizePixel  = 0
+	BuyBtn.AutoButtonColor  = false
+	BuyBtn.Active           = false
+	BuyBtn.ZIndex           = 3
+	BuyBtn.ClipsDescendants = true
+	Instance.new("UICorner", BuyBtn).CornerRadius = UDim.new(0, 10)
+
+	local SweepCover = Instance.new("Frame", BuyBtn)
+	SweepCover.Size             = UDim2.new(0,0,1,0)
+	SweepCover.BackgroundColor3 = C_BTN_LIGHT
+	SweepCover.BorderSizePixel  = 0
+	SweepCover.ZIndex           = 4
+	Instance.new("UICorner", SweepCover).CornerRadius = UDim.new(0, 10)
+
+	local BuyLbl = Instance.new("TextLabel", BuyBtn)
+	BuyLbl.Size                   = UDim2.new(1,0,1,0)
+	BuyLbl.BackgroundTransparency = 1
+	BuyLbl.Text                   = "Buy"
+	BuyLbl.Font                   = Enum.Font.GothamBold
+	BuyLbl.TextSize               = 18
+	BuyLbl.TextColor3             = C_WHITE
+	BuyLbl.ZIndex                 = 5
+
+	-- SUCCESS CARD
+	local SuccessCard = Instance.new("Frame", screenGui)
+	SuccessCard.Name             = "SuccessCard"
+	SuccessCard.Size             = UDim2.new(0, SUCC_W, 0, SUCC_H)
+	SuccessCard.AnchorPoint      = Vector2.new(0.5, 0.5)
+	SuccessCard.Position         = UDim2.new(0.5, 0, -0.4, 0)
+	SuccessCard.BackgroundColor3 = C_CARD
+	SuccessCard.BorderSizePixel  = 0
+	SuccessCard.Visible          = false
+	SuccessCard.ZIndex           = 10
+	Instance.new("UICorner", SuccessCard).CornerRadius = UDim.new(0, 12)
+
+	local STitleLbl = Instance.new("TextLabel", SuccessCard)
+	STitleLbl.Size                   = UDim2.new(1,-52,0,50)
+	STitleLbl.Position               = UDim2.new(0,18,0,0)
+	STitleLbl.BackgroundTransparency = 1
+	STitleLbl.Text                   = "Purchase completed"
+	STitleLbl.Font                   = Enum.Font.GothamBold
+	STitleLbl.TextSize               = 19
+	STitleLbl.TextColor3             = C_WHITE
+	STitleLbl.TextXAlignment         = Enum.TextXAlignment.Left
+	STitleLbl.ZIndex                 = 11
+
+	local SCloseBtn = Instance.new("TextButton", SuccessCard)
+	SCloseBtn.Size                   = UDim2.new(0,40,0,50)
+	SCloseBtn.Position               = UDim2.new(1,-44,0,0)
+	SCloseBtn.BackgroundTransparency = 1
+	SCloseBtn.Text                   = "X"
+	SCloseBtn.Font                   = Enum.Font.GothamBold
+	SCloseBtn.TextSize               = 18
+	SCloseBtn.TextColor3             = C_WHITE
+	SCloseBtn.BorderSizePixel        = 0
+	SCloseBtn.ZIndex                 = 12
+
+	local CheckImg = Instance.new("ImageLabel", SuccessCard)
+	CheckImg.Size                   = UDim2.new(0,60,0,60)
+	CheckImg.Position               = UDim2.new(0.5,-30,0,44)
+	CheckImg.BackgroundTransparency = 1
+	CheckImg.Image                  = "rbxassetid://135084016839600"
+	CheckImg.ScaleType              = Enum.ScaleType.Fit
+	CheckImg.ZIndex                 = 12
+
+	local SMsg = Instance.new("TextLabel", SuccessCard)
+	SMsg.Size                   = UDim2.new(1,-36,0,32)
+	SMsg.Position               = UDim2.new(0,18,0,116)
+	SMsg.BackgroundTransparency = 1
+	SMsg.Font                   = Enum.Font.Gotham
+	SMsg.TextSize               = 14
+	SMsg.TextColor3             = C_WHITE
+	SMsg.TextWrapped            = true
+	SMsg.TextYAlignment         = Enum.TextYAlignment.Center
+	SMsg.ZIndex                 = 12
+	if giftedTo and giftedTo ~= "" then
+		SMsg.Text = 'Successfully Gifted "'..itemName..'" to '..giftedTo..'!'
+	else
+		SMsg.Text = 'Successfully Purchased "'..itemName..'"!'
+	end
+
+	local OKBtn = Instance.new("TextButton", SuccessCard)
+	OKBtn.Size             = UDim2.new(1,-28,0,48)
+	OKBtn.Position         = UDim2.new(0,14,0,158)
+	OKBtn.BackgroundColor3 = C_BTN_LIGHT
+	OKBtn.Text             = "OK"
+	OKBtn.Font             = Enum.Font.GothamBold
+	OKBtn.TextSize         = 18
+	OKBtn.TextColor3       = C_WHITE
+	OKBtn.BorderSizePixel  = 0
+	OKBtn.AutoButtonColor  = false
+	OKBtn.ZIndex           = 12
+	Instance.new("UICorner", OKBtn).CornerRadius = UDim.new(0, 10)
+
+	-- LOGIC (their animation style: slide in, fill sweep, success slide in)
+	local closing  = false
+	local fillDone = false
+	local buyDone  = false
+	local fillTween = nil
+
+	local function closeDown()
+		if closing then return end
+		closing = true
+		if fillTween then fillTween:Cancel() end
+		TweenService:Create(Card, TweenInfo.new(0.32, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(0.5,0,1.4,0)}):Play()
+		TweenService:Create(Backdrop, TweenInfo.new(0.30), {BackgroundTransparency = 1}):Play()
+		task.delay(0.33, function() screenGui:Destroy() end)
+	end
+
+	local function closeSuccess()
+		if closing then return end
+		closing = true
+		TweenService:Create(SuccessCard, TweenInfo.new(0.32, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(0.5,0,1.4,0)}):Play()
+		TweenService:Create(Backdrop, TweenInfo.new(0.30), {BackgroundTransparency = 1}):Play()
+		task.delay(0.33, function()
+			balance = math.max(0, balance - price)
+			BalanceBox.Text = tostring(balance)
+			screenGui:Destroy()
+		end)
+	end
+
+	local function showSuccess()
+		Card.Visible          = false
+		SuccessCard.Visible   = true
+		SuccessCard.Position  = UDim2.new(0.5, 0, -0.35, 0)
+		TweenService:Create(SuccessCard, TweenInfo.new(0.38, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5,0,0.5,0)}):Play()
+		-- try game's own success sfx first, fallback to our sound
+		local played = false
+		pcall(function()
+			local sfx = game:GetService("ReplicatedStorage").Sounds.Sfx.Success
+			sfx:Play()
+			played = true
+		end)
+		if not played then
+			local snd = Instance.new("Sound")
+			snd.SoundId = "rbxassetid://89446320629366"
+			snd.Volume  = 1
+			snd.Parent  = workspace
+			snd:Play()
+			Debris:AddItem(snd, 10)
+		end
+		-- gifted label
+		if giftedTo and giftedTo ~= "" then
+			if CoreGui:FindFirstChild("GiftLabelGUI") then CoreGui.GiftLabelGUI:Destroy() end
+			local gGui = Instance.new("ScreenGui")
+			gGui.Name           = "GiftLabelGUI"
+			gGui.ResetOnSpawn   = false
+			gGui.IgnoreGuiInset = true
+			gGui.DisplayOrder   = 1000
+			gGui.Parent         = CoreGui
+			local gLabel = Instance.new("TextLabel", gGui)
+			gLabel.Size                   = UDim2.new(1,0,0,40)
+			gLabel.AnchorPoint            = Vector2.new(0.5,1)
+			gLabel.Position               = UDim2.new(0.5,0,1,-64)
+			gLabel.BackgroundTransparency = 1
+			gLabel.RichText               = true
+			gLabel.Text                   = '<font color="#92FF67">Successfully Gifted To '..giftedTo..'</font>'
+			gLabel.Font                   = Enum.Font.GothamBold
+			gLabel.TextSize               = 19
+			gLabel.TextXAlignment         = Enum.TextXAlignment.Center
+			gLabel.ZIndex                 = 5
+			task.delay(5, function()
+				if not gGui or not gGui.Parent then return end
+				for i = 1, 20 do
+					task.wait(0.05)
+					if gLabel and gLabel.Parent then gLabel.TextTransparency = i/20 end
+				end
+				pcall(function() gGui:Destroy() end)
+			end)
+			screenGui.AncestryChanged:Connect(function()
+				if not screenGui.Parent then pcall(function() gGui:Destroy() end) end
+			end)
+		end
+	end
+
+	-- slide in card, then start sweep
+	local slideTween = TweenService:Create(Card, TweenInfo.new(0.42, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5,0,0.5,0)})
+	slideTween:Play()
+	slideTween.Completed:Connect(function()
+		if closing then return end
+		fillTween = TweenService:Create(SweepCover, TweenInfo.new(1.5, Enum.EasingStyle.Linear), {Size = UDim2.new(1,0,1,0)})
+		fillTween:Play()
+		fillTween.Completed:Connect(function(state)
+			if state ~= Enum.PlaybackState.Completed or closing then return end
+			fillDone = true
+			-- sweep done: button is now fully light blue, enable it
+			BuyBtn.Active = true
+		end)
+	end)
+
+	local function onBuyClick()
+		if not fillDone or buyDone or closing then return end
+		buyDone = true
+		BuyBtn.Active = false
+		BuyBtn.BackgroundColor3 = C_BTN_DARK
+		task.delay(1.5, function()
+			if closing then return end
+			showSuccess()
+		end)
+	end
+
+	CloseBtn.MouseButton1Click:Connect(closeDown)
+	SCloseBtn.MouseButton1Click:Connect(closeSuccess)
+	OKBtn.MouseButton1Click:Connect(closeSuccess)
+
+	BuyBtn.MouseButton1Click:Connect(onBuyClick)
+	BuyBtn.InputBegan:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.Touch then onBuyClick() end
+	end)
+
+	Backdrop.InputBegan:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+			if SuccessCard.Visible then closeSuccess() else closeDown() end
+		end
+	end)
+end
+
+-- THEIR INJECTION (untouched)
+local function injectItem(item)
+	if item:FindFirstChild("__inj") then return end
+	local buyObj = item:FindFirstChild("Buy")
+	if not buyObj then return end
+	local priceLbl    = buyObj:FindFirstChild("Price") or item:FindFirstChild("Price")
+	local nameLbl     = item:FindFirstChild("ItemName") or item:FindFirstChild("Text")
+	local iconObj     = item:FindFirstChild("Icon")
+	local itemName    = (nameLbl  and nameLbl.Text)  or "Unknown"
+	local itemPrice   = (priceLbl and priceLbl.Text) or "0"
+	local itemImageId = (iconObj  and iconObj.Image) or ""
+	local ghost = Instance.new("TextButton", buyObj)
+	ghost.Name                   = "GhostBtn"
+	ghost.Size                   = UDim2.new(1,0,1,0)
+	ghost.Position               = UDim2.new(0,0,0,0)
+	ghost.AnchorPoint            = Vector2.new(0,0)
+	ghost.BackgroundTransparency = 1
+	ghost.Text                   = ""
+	ghost.AutoButtonColor        = false
+	ghost.BorderSizePixel        = 0
+	ghost.ZIndex                 = buyObj.ZIndex + 20
+	local tag = Instance.new("BoolValue", item)
+	tag.Name = "__inj"
+	ghost.MouseButton1Click:Connect(function()
+		local snd = Instance.new("Sound", game:GetService("SoundService"))
+		snd.SoundId = "rbxassetid://75311202481026"
+		snd.Volume = 1
+		snd:Play()
+		game:GetService("Debris"):AddItem(snd, 5)
+		local giftedTo = nil
+		pcall(function()
+			local giftBtn = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.Buttons.GiftButton
+			local txt = giftBtn:FindFirstChild("Txt")
+			if txt and txt:IsA("TextLabel") then
+				if string.lower(txt.Text) == "back" then
+					local playerNameLbl = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.PlayerSelected.PlayerName
+					if playerNameLbl then
+						local ct = playerNameLbl:FindFirstChild("ContentText") or playerNameLbl
+						giftedTo = ct.Text
+					end
+				end
+			end
+		end)
+		createBuyUI(itemName, itemPrice, itemImageId, giftedTo)
+	end)
+end
+
+local function injectContainer(container)
+	for _, child in ipairs(container:GetChildren()) do
+		if child:IsA("ImageLabel") or child:IsA("Frame") then
+			pcall(injectItem, child)
+		end
+	end
+	container.ChildAdded:Connect(function(child)
+		task.wait(0.1)
+		if child:IsA("ImageLabel") or child:IsA("Frame") then
+			pcall(injectItem, child)
+		end
+	end)
+end
+
+local function injectAll()
+	local shopGui = playerGui:FindFirstChild(player.DisplayName..".Shop")
+		or playerGui:FindFirstChild(player.Name..".Shop")
+		or playerGui:FindFirstChild("Shop")
+	if not shopGui then return end
+	local inner   = shopGui:FindFirstChild("Shop")
+	local content = inner   and inner:FindFirstChild("Content")
+	local list    = content and content:FindFirstChild("List")
+	if not list then return end
+	local itemsList = list:FindFirstChild("ItemsList")
+	if itemsList then injectContainer(itemsList) end
+	local gamepassList = list:FindFirstChild("GamepassList")
+	if gamepassList then
+		injectContainer(gamepassList)
+		local main = gamepassList:FindFirstChild("Main")
+		if main then injectContainer(main) end
+	end
+	local serverLuck = list:FindFirstChild("ServerLuck")
+	if serverLuck then
+		local slFrame = serverLuck:FindFirstChild("Frame")
+		if slFrame then pcall(injectItem, slFrame) end
+		serverLuck.ChildAdded:Connect(function(child)
+			task.wait(0.1)
+			if child.Name == "Frame" then pcall(injectItem, child) end
+		end)
+	end
+end
+
+task.spawn(function()
+	local names = {player.DisplayName..".Shop", player.Name..".Shop", "Shop"}
+	local found, waited = false, 0
+	repeat
+		task.wait(0.5); waited += 0.5
+		for _, n in ipairs(names) do
+			if playerGui:FindFirstChild(n) then found = true; break end
+		end
+	until found or waited >= 20
+	if not found then return end
+	task.wait(0.3)
+	injectAll()
+end)
