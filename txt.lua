@@ -445,17 +445,157 @@ local function createBuyUI(itemName, itemPrice, itemImageId, giftedTo)
 	end)
 end
 
--- THEIR INJECTION (untouched)
+-- OWNED POPUP
+local function createOwnedUI(itemName, itemImageId)
+	if CoreGui:FindFirstChild("BuyItemGUI") then
+		CoreGui.BuyItemGUI:Destroy()
+	end
+	local CARD_W = 460
+	local CARD_H = 180
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name           = "BuyItemGUI"
+	screenGui.ResetOnSpawn   = false
+	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screenGui.IgnoreGuiInset = true
+	screenGui.DisplayOrder   = 999
+	screenGui.Parent         = CoreGui
+
+	local Backdrop = Instance.new("Frame", screenGui)
+	Backdrop.Size                   = UDim2.new(1,0,1,0)
+	Backdrop.BackgroundColor3       = Color3.fromRGB(0,0,0)
+	Backdrop.BackgroundTransparency = 0.3
+	Backdrop.BorderSizePixel        = 0
+	Backdrop.ZIndex                 = 1
+
+	local Card = Instance.new("Frame", screenGui)
+	Card.Size             = UDim2.new(0, CARD_W, 0, CARD_H)
+	Card.AnchorPoint      = Vector2.new(0.5, 0.5)
+	Card.Position         = UDim2.new(0.5, 0, -0.3, 0)
+	Card.BackgroundColor3 = C_CARD
+	Card.BorderSizePixel  = 0
+	Card.ZIndex           = 2
+	Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 12)
+
+	local TitleLbl = Instance.new("TextLabel", Card)
+	TitleLbl.Size = UDim2.new(0,250,0,50); TitleLbl.Position = UDim2.new(0,18,0,0)
+	TitleLbl.BackgroundTransparency = 1; TitleLbl.Text = "Item Owned"
+	TitleLbl.Font = Enum.Font.GothamBold; TitleLbl.TextSize = 20
+	TitleLbl.TextColor3 = C_WHITE; TitleLbl.TextXAlignment = Enum.TextXAlignment.Left; TitleLbl.ZIndex = 3
+
+	local CloseBtn = Instance.new("TextButton", Card)
+	CloseBtn.Size = UDim2.new(0,40,0,50); CloseBtn.Position = UDim2.new(1,-44,0,0)
+	CloseBtn.BackgroundTransparency = 1; CloseBtn.Text = "X"
+	CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 18
+	CloseBtn.TextColor3 = C_WHITE; CloseBtn.BorderSizePixel = 0; CloseBtn.ZIndex = 4
+
+	local IconFrame = Instance.new("Frame", Card)
+	IconFrame.Size = UDim2.new(0,80,0,80); IconFrame.Position = UDim2.new(0,14,0,56)
+	IconFrame.BackgroundTransparency = 1; IconFrame.ZIndex = 3
+	Instance.new("UICorner", IconFrame).CornerRadius = UDim.new(0, 8)
+	local IconImg = Instance.new("ImageLabel", IconFrame)
+	IconImg.Size = UDim2.new(1,0,1,0); IconImg.BackgroundTransparency = 1
+	IconImg.Image = itemImageId or ""; IconImg.ScaleType = Enum.ScaleType.Fit; IconImg.ZIndex = 4
+
+	local MsgLbl = Instance.new("TextLabel", Card)
+	MsgLbl.Size = UDim2.new(1,-120,0,24); MsgLbl.Position = UDim2.new(0,108,0,68)
+	MsgLbl.BackgroundTransparency = 1
+	MsgLbl.Text = itemName
+	MsgLbl.Font = Enum.Font.GothamBold; MsgLbl.TextSize = 17
+	MsgLbl.TextColor3 = C_WHITE; MsgLbl.TextXAlignment = Enum.TextXAlignment.Left
+	MsgLbl.TextTruncate = Enum.TextTruncate.AtEnd; MsgLbl.ZIndex = 3
+
+	local SubLbl = Instance.new("TextLabel", Card)
+	SubLbl.Size = UDim2.new(1,-120,0,20); SubLbl.Position = UDim2.new(0,108,0,96)
+	SubLbl.BackgroundTransparency = 1
+	SubLbl.Text = "You already own this item."
+	SubLbl.Font = Enum.Font.Gotham; SubLbl.TextSize = 14
+	SubLbl.TextColor3 = Color3.fromRGB(180,180,200); SubLbl.TextXAlignment = Enum.TextXAlignment.Left; SubLbl.ZIndex = 3
+
+	local OKBtn = Instance.new("TextButton", Card)
+	OKBtn.Size = UDim2.new(1,-28,0,40); OKBtn.Position = UDim2.new(0,14,0,126)
+	OKBtn.BackgroundColor3 = C_BTN_LIGHT; OKBtn.Text = "OK"
+	OKBtn.Font = Enum.Font.GothamBold; OKBtn.TextSize = 18
+	OKBtn.TextColor3 = C_WHITE; OKBtn.BorderSizePixel = 0
+	OKBtn.AutoButtonColor = false; OKBtn.ZIndex = 3
+	Instance.new("UICorner", OKBtn).CornerRadius = UDim.new(0, 10)
+
+	local closing = false
+	local function closeOwned()
+		if closing then return end; closing = true
+		TweenService:Create(Card, TweenInfo.new(0.32, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.new(0.5,0,1.4,0)}):Play()
+		TweenService:Create(Backdrop, TweenInfo.new(0.30), {BackgroundTransparency = 1}):Play()
+		task.delay(0.33, function() screenGui:Destroy() end)
+	end
+
+	TweenService:Create(Card, TweenInfo.new(0.42, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5,0,0.5,0)}):Play()
+	CloseBtn.MouseButton1Click:Connect(closeOwned)
+	OKBtn.MouseButton1Click:Connect(closeOwned)
+	Backdrop.InputBegan:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 then closeOwned() end
+	end)
+end
+
+-- helper: read best name from item frame
+local function getItemName(item)
+	-- search all TextLabels, pick the longest non-price text
+	local best = ""
+	for _, v in ipairs(item:GetDescendants()) do
+		if v:IsA("TextLabel") then
+			local t = v.Text or ""
+			-- skip price labels (contain robux symbol or just numbers)
+			if not t:match("^%s*[%d,]+%s*$") and not t:match(utf8.char(0xE002)) and #t > #best then
+				best = t
+			end
+		end
+	end
+	return best ~= "" and best or "Unknown"
+end
+
+-- check if player already owns a gamepass
+local MPS = game:GetService("MarketplaceService")
+local ownedCache = {}
+local function isOwned(itemId)
+	if ownedCache[itemId] ~= nil then return ownedCache[itemId] end
+	local ok, result = pcall(function()
+		return MPS:UserOwnsGamePassAsync(Players.LocalPlayer.UserId, tonumber(itemId))
+	end)
+	local owned = ok and result or false
+	ownedCache[itemId] = owned
+	return owned
+end
+
+-- INJECTION
 local function injectItem(item)
 	if item:FindFirstChild("__inj") then return end
 	local buyObj = item:FindFirstChild("Buy")
 	if not buyObj then return end
 	local priceLbl    = buyObj:FindFirstChild("Price") or item:FindFirstChild("Price")
-	local nameLbl     = item:FindFirstChild("ItemName") or item:FindFirstChild("Text")
 	local iconObj     = item:FindFirstChild("Icon")
-	local itemName    = (nameLbl  and nameLbl.Text)  or "Unknown"
+	local itemId      = item.Name
+	local itemImageId = (iconObj and iconObj.Image) or ""
 	local itemPrice   = (priceLbl and priceLbl.Text) or "0"
-	local itemImageId = (iconObj  and iconObj.Image) or ""
+	local itemName    = getItemName(item)
+	-- try to get real name from Roblox API
+	pcall(function()
+		local id = tonumber(itemId)
+		if not id then return end
+		local ok1, info1 = pcall(function() return MPS:GetProductInfo(id, Enum.InfoType.GamePass) end)
+		if ok1 and info1 and info1.Name then
+			itemName = info1.Name
+			itemPrice = tostring(info1.PriceInRobux or 0)
+			itemImageId = "rbxthumb://type=GamePass&id="..itemId.."&w=150&h=150"
+			return
+		end
+		local ok2, info2 = pcall(function() return MPS:GetProductInfo(id, Enum.InfoType.Product) end)
+		if ok2 and info2 and info2.Name then
+			itemName = info2.Name
+			itemPrice = tostring(info2.PriceInRobux or 0)
+			if info2.IconImageAssetId and info2.IconImageAssetId ~= 0 then
+				itemImageId = "rbxassetid://"..tostring(info2.IconImageAssetId)
+			end
+		end
+	end)
+
 	local ghost = Instance.new("TextButton", buyObj)
 	ghost.Name                   = "GhostBtn"
 	ghost.Size                   = UDim2.new(1,0,1,0)
@@ -468,12 +608,20 @@ local function injectItem(item)
 	ghost.ZIndex                 = buyObj.ZIndex + 20
 	local tag = Instance.new("BoolValue", item)
 	tag.Name = "__inj"
+
 	ghost.MouseButton1Click:Connect(function()
 		local snd = Instance.new("Sound", game:GetService("SoundService"))
 		snd.SoundId = "rbxassetid://75311202481026"
 		snd.Volume = 1
 		snd:Play()
 		game:GetService("Debris"):AddItem(snd, 5)
+
+		-- check owned (gamepasses only)
+		if isOwned(itemId) then
+			createOwnedUI(itemName, itemImageId)
+			return
+		end
+
 		local giftedTo = nil
 		pcall(function()
 			local giftBtn = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.Buttons.GiftButton
@@ -491,6 +639,93 @@ local function injectItem(item)
 		createBuyUI(itemName, itemPrice, itemImageId, giftedTo)
 	end)
 end
+
+
+
+-- INTERCEPT ALL ROBLOX PURCHASE PROMPTS GAME-WIDE
+-- This hooks the actual Roblox purchase popup so ANY prompt in the game
+-- (shop, proximity prompt, script-triggered) gets our GUI instead
+local MPS_hook = game:GetService("MarketplaceService")
+
+MPS_hook.PromptGamePassPurchaseRequested:Connect(function(plr, gamePassId)
+	if plr ~= Players.LocalPlayer then return end
+	task.spawn(function()
+		local snd = Instance.new("Sound", game:GetService("SoundService"))
+		snd.SoundId = "rbxassetid://75311202481026"
+		snd.Volume = 1; snd:Play()
+		game:GetService("Debris"):AddItem(snd, 5)
+
+		local itemName  = "Unknown"
+		local itemImage = "rbxthumb://type=GamePass&id="..gamePassId.."&w=150&h=150"
+		local itemPrice = "0"
+
+		pcall(function()
+			local info = MPS_hook:GetProductInfo(gamePassId, Enum.InfoType.GamePass)
+			if info then
+				itemName  = info.Name or itemName
+				itemPrice = tostring(info.PriceInRobux or 0)
+			end
+		end)
+
+		if isOwned(tostring(gamePassId)) then
+			createOwnedUI(itemName, itemImage)
+			return
+		end
+
+		local giftedTo = nil
+		pcall(function()
+			local giftBtn = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.Buttons.GiftButton
+			local txt = giftBtn:FindFirstChild("Txt")
+			if txt and string.lower(txt.Text) == "back" then
+				local pnl = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.PlayerSelected.PlayerName
+				if pnl then
+					local ct = pnl:FindFirstChild("ContentText") or pnl
+					giftedTo = ct.Text
+				end
+			end
+		end)
+
+		createBuyUI(itemName, itemPrice, itemImage, giftedTo)
+	end)
+end)
+
+MPS_hook.PromptProductPurchaseRequested:Connect(function(plr, productId)
+	if plr ~= Players.LocalPlayer then return end
+	task.spawn(function()
+		local snd = Instance.new("Sound", game:GetService("SoundService"))
+		snd.SoundId = "rbxassetid://75311202481026"
+		snd.Volume = 1; snd:Play()
+		game:GetService("Debris"):AddItem(snd, 5)
+
+		local itemName  = "Unknown"
+		local itemImage = ""
+		local itemPrice = "0"
+
+		pcall(function()
+			local info = MPS_hook:GetProductInfo(productId, Enum.InfoType.Product)
+			if info then
+				itemName  = info.Name or itemName
+				itemPrice = tostring(info.PriceInRobux or 0)
+				itemImage = info.IconImageAssetId and ("rbxassetid://"..info.IconImageAssetId) or ""
+			end
+		end)
+
+		local giftedTo = nil
+		pcall(function()
+			local giftBtn = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.Buttons.GiftButton
+			local txt = giftBtn:FindFirstChild("Txt")
+			if txt and string.lower(txt.Text) == "back" then
+				local pnl = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.PlayerSelected.PlayerName
+				if pnl then
+					local ct = pnl:FindFirstChild("ContentText") or pnl
+					giftedTo = ct.Text
+				end
+			end
+		end)
+
+		createBuyUI(itemName, itemPrice, itemImage, giftedTo)
+	end)
+end)
 
 local function injectContainer(container)
 	for _, child in ipairs(container:GetChildren()) do
