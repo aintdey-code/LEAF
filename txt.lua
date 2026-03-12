@@ -14,7 +14,7 @@ local panelVisible = false
 local PANEL_W    = 210
 local PANEL_H    = 120
 
-local C_CARD      = Color3.fromRGB(28, 28, 40)
+local C_CARD      = Color3.fromRGB(40, 40, 58)
 local C_WHITE     = Color3.fromRGB(255, 255, 255)
 local C_BTN_DARK  = Color3.fromRGB(55,  65, 160)
 local C_BTN_LIGHT = Color3.fromRGB(88, 101, 242)
@@ -397,9 +397,7 @@ local function createBuyUI(itemName, itemPrice, itemImageId, giftedTo)
 				end
 				pcall(function() gGui:Destroy() end)
 			end)
-			screenGui.AncestryChanged:Connect(function()
-				if not screenGui.Parent then pcall(function() gGui:Destroy() end) end
-			end)
+
 		end
 	end
 
@@ -642,23 +640,39 @@ end
 
 
 
--- INTERCEPT ALL ROBLOX PURCHASE PROMPTS GAME-WIDE
--- This hooks the actual Roblox purchase popup so ANY prompt in the game
--- (shop, proximity prompt, script-triggered) gets our GUI instead
+-- INTERCEPT PURCHASE PROMPTS GAME-WIDE
 local MPS_hook = game:GetService("MarketplaceService")
+
+local function getGiftTarget()
+	local giftedTo = nil
+	pcall(function()
+		local giftBtn = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.Buttons.GiftButton
+		local txt = giftBtn:FindFirstChild("Txt")
+		if txt and string.lower(txt.Text) == "back" then
+			local pnl = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.PlayerSelected.PlayerName
+			if pnl then
+				local ct = pnl:FindFirstChild("ContentText") or pnl
+				giftedTo = ct.Text
+			end
+		end
+	end)
+	return giftedTo
+end
+
+local function playClickSnd()
+	local snd = Instance.new("Sound", game:GetService("SoundService"))
+	snd.SoundId = "rbxassetid://75311202481026"
+	snd.Volume = 1; snd:Play()
+	game:GetService("Debris"):AddItem(snd, 5)
+end
 
 MPS_hook.PromptGamePassPurchaseRequested:Connect(function(plr, gamePassId)
 	if plr ~= Players.LocalPlayer then return end
 	task.spawn(function()
-		local snd = Instance.new("Sound", game:GetService("SoundService"))
-		snd.SoundId = "rbxassetid://75311202481026"
-		snd.Volume = 1; snd:Play()
-		game:GetService("Debris"):AddItem(snd, 5)
-
+		playClickSnd()
 		local itemName  = "Unknown"
-		local itemImage = "rbxthumb://type=GamePass&id="..gamePassId.."&w=150&h=150"
+		local itemImage = "rbxthumb://type=GamePass&id="..tostring(gamePassId).."&w=150&h=150"
 		local itemPrice = "0"
-
 		pcall(function()
 			local info = MPS_hook:GetProductInfo(gamePassId, Enum.InfoType.GamePass)
 			if info then
@@ -666,64 +680,32 @@ MPS_hook.PromptGamePassPurchaseRequested:Connect(function(plr, gamePassId)
 				itemPrice = tostring(info.PriceInRobux or 0)
 			end
 		end)
-
 		if isOwned(tostring(gamePassId)) then
 			createOwnedUI(itemName, itemImage)
 			return
 		end
-
-		local giftedTo = nil
-		pcall(function()
-			local giftBtn = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.Buttons.GiftButton
-			local txt = giftBtn:FindFirstChild("Txt")
-			if txt and string.lower(txt.Text) == "back" then
-				local pnl = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.PlayerSelected.PlayerName
-				if pnl then
-					local ct = pnl:FindFirstChild("ContentText") or pnl
-					giftedTo = ct.Text
-				end
-			end
-		end)
-
-		createBuyUI(itemName, itemPrice, itemImage, giftedTo)
+		createBuyUI(itemName, itemPrice, itemImage, getGiftTarget())
 	end)
 end)
 
 MPS_hook.PromptProductPurchaseRequested:Connect(function(plr, productId)
 	if plr ~= Players.LocalPlayer then return end
 	task.spawn(function()
-		local snd = Instance.new("Sound", game:GetService("SoundService"))
-		snd.SoundId = "rbxassetid://75311202481026"
-		snd.Volume = 1; snd:Play()
-		game:GetService("Debris"):AddItem(snd, 5)
-
+		playClickSnd()
 		local itemName  = "Unknown"
 		local itemImage = ""
 		local itemPrice = "0"
-
 		pcall(function()
 			local info = MPS_hook:GetProductInfo(productId, Enum.InfoType.Product)
 			if info then
 				itemName  = info.Name or itemName
 				itemPrice = tostring(info.PriceInRobux or 0)
-				itemImage = info.IconImageAssetId and ("rbxassetid://"..info.IconImageAssetId) or ""
-			end
-		end)
-
-		local giftedTo = nil
-		pcall(function()
-			local giftBtn = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.Buttons.GiftButton
-			local txt = giftBtn:FindFirstChild("Txt")
-			if txt and string.lower(txt.Text) == "back" then
-				local pnl = Players.LocalPlayer.PlayerGui.Shop.Shop.GiftPlayerSelect.PlayerSelected.PlayerName
-				if pnl then
-					local ct = pnl:FindFirstChild("ContentText") or pnl
-					giftedTo = ct.Text
+				if info.IconImageAssetId and info.IconImageAssetId ~= 0 then
+					itemImage = "rbxassetid://"..tostring(info.IconImageAssetId)
 				end
 			end
 		end)
-
-		createBuyUI(itemName, itemPrice, itemImage, giftedTo)
+		createBuyUI(itemName, itemPrice, itemImage, getGiftTarget())
 	end)
 end)
 
